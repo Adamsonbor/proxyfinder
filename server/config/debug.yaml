@@ -1,0 +1,14 @@
+env: "debug"
+
+collector:
+  timeout: 5s
+
+checker:
+  timeout: 5s
+
+database:
+  path: "./storage/local.db"
+  timeout: 5s
+
+scheduler:
+  interval: 1h

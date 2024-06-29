@@ -1,0 +1,64 @@
+services:
+  proxyfinder-api:
+    build: ./server/
+    container_name: proxyfinder-api
+    command: bash -c " 
+      cd /app && \
+      build/api --config /app/config/local.yaml --db /app/storage/local.db"
+    volumes:
+      - ./server/config:/app/config
+      - ./server/storage/local.db:/app/storage/local.db
+      - ./server/build/api:/app/build/api
+      - ./server/Makefile:/app/Makefile
+    ports:
+      - 8080:8080
+    depends_on:
+      - proxyfinder-migrate
+
+  proxyfinder-scheduler:
+    build: ./server/
+    container_name: proxyfinder-scheduler
+    command: bash -c " 
+      cd /app && \
+      build/scheduler --config /app/config/local.yaml --db /app/storage/local.db"
+    volumes:
+      - ./server/config:/app/config
+      - ./server/storage/local.db:/app/storage/local.db
+      - ./server/build/scheduler:/app/build/scheduler
+      - ./server/Makefile:/app/Makefile
+    depends_on:
+      - proxyfinder-migrate
+  
+  proxyfinder-migrate:
+    build: ./server/
+    container_name: proxyfinder-migrate
+    command: bash -c "
+      cd /app && \
+      make goose-up && \
+      build/initdb up"
+    volumes:
+      - ./server/config:/app/config
+      - ./server/storage:/app/storage
+      - ./server/build:/app/build
+      - ./server/migrations:/app/migrations/
+      - ./server/Makefile:/app/Makefile
+
+  proxyfinder-frontend-prod:
+    image: nginx:1.26-alpine
+    container_name: proxyfinder-frontend-prod
+    ports:
+      - 3000:3000
+    working_dir: /app
+    volumes:
+      - ./frontend/dist:/app/dist
+      - ./frontend/nginx.conf:/etc/nginx/nginx.conf
+    
+  # proxyfinder-frontend-dev:
+  #   image: node:20-alpine
+  #   container_name: proxyfinder-frontend-dev
+  #   ports:
+  #     - 3000:3000
+  #   working_dir: /app
+  #   volumes:
+  #     - ./frontend:/app
+  #   command: yarn dev
