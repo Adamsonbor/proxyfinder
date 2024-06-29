@@ -1,0 +1,14 @@
+env: "local"
+
+collector:
+  timeout: 10s
+
+checker:
+  timeout: 10s
+
+database:
+  path: "./storage/local.db"
+  timeout: 10s
+
+scheduler:
+  interval: 1h

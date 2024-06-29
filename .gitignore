@@ -1,0 +1,5 @@
+.vim
+.env
+*.log
+*.txt
+*.db
