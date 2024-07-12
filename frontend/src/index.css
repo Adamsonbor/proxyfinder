@@ -1,0 +1,15 @@
+@import "bootstrap/dist/css/bootstrap.min.css";
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	/* font-family: 'Roboto', sans-serif; */
+	font-family: 'Inter', sans-serif;
+	font-size: 16px;
+	line-height: 100%;
+	letter-spacing: -0.6px;
+}
