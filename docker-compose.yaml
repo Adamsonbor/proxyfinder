@@ -1,0 +1,11 @@
+services:
+  proxyfinder:
+    build: ./server/
+    container_name: server
+    command: bash -c "/app/build/api --config /app/config/local.yaml --db /app/storage/local.db"
+    volumes:
+      - ./server/config:/app/config
+      - ./server/storage:/app/storage
+      - ./server/build:/app/build
+    ports:
+      - 8080:8080

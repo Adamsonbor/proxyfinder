@@ -57,7 +57,14 @@ export default function InfiniteTable(props: Props) {
 			minWidth: 100,
 			flex: 4,
 			renderCell: (params: any) => (
-				<>
+				<div style={{
+					height: '100%',
+					display: 'flex',
+					alignItems: 'center',
+					flexDirection: 'row',
+					flexWrap: 'wrap',
+					gap: '4px',
+				}}>
 					{params.row.protocols.map((protocol: string, index: number) => (
 						<ProtocolTab
 							key={index}
@@ -68,7 +75,7 @@ export default function InfiniteTable(props: Props) {
 							}}
 						/>
 					))}
-				</>
+				</div>
 			),
 		},
 		{ field: 'response', headerName: 'RESPONSE', minWidth: 100, flex: 1 },
@@ -112,6 +119,7 @@ export default function InfiniteTable(props: Props) {
 			className={props.className}
 			sx={{
 				border: "none",
+				fontSize: '14px',
 				'& .MuiDataGrid-columnHeaders': {
 					color: theme.palette.text.secondary,
 				},
@@ -122,6 +130,7 @@ export default function InfiniteTable(props: Props) {
 				'& .MuiDataGrid-cell': {
 					border: "none",
 					outline: "none",
+					fontSize: theme.typography.fontSize,
 				},
 				'& .MuiDataGrid-cell:focus': {
 					outline: "none",

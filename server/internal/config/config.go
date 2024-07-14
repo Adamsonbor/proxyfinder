@@ -33,7 +33,21 @@ type Scheduler struct {
 	Interval time.Duration `yaml:"interval"`
 }
 
-func MustLoad(configPath string) *Config {
+func MustLoadConfig() *Config {
+	flags := ParseFlags()
+
+	configPath := GetConfigPath(flags)
+	config := MustReadConfigFile(configPath)
+
+	databasePath := GetDatabasePath(flags)
+	if databasePath != "" {
+		config.Database.Path = databasePath
+	}
+
+	return config
+}
+
+func MustReadConfigFile(configPath string) *Config {
 	_, err := os.Stat(configPath)
 	if err != nil {
 		panic("Config file not found: " + configPath)
@@ -48,14 +62,41 @@ func MustLoad(configPath string) *Config {
 	return &config
 }
 
-func GetConfigPath() string {
-	configPath := os.Getenv("CONFIG_PATH")
-	if configPath != "" {
+func ParseFlags() map[string]string {
+	var databasePath string
+	var configPath string
+
+	flag.StringVar(&databasePath, "db", "", "path to database file")
+	flag.StringVar(&configPath, "config", "", "path to config file")
+	flag.Parse()
+
+	return map[string]string{
+		"DATABASE_PATH": databasePath,
+		"CONFIG_PATH":   configPath,
+	}
+}
+
+func GetDatabasePath(flags map[string]string) string {
+	databasePath, ok := flags["DATABASE_PATH"]
+	if ok {
+		return databasePath
+	}
+
+	databasePath = os.Getenv("DATABASE_PATH")
+	if databasePath != "" {
+		return databasePath
+	}
+
+	return ""
+}
+
+func GetConfigPath(flags map[string]string) string {
+	configPath, ok := flags["CONFIG_PATH"]
+	if ok {
 		return configPath
 	}
 
-	flag.StringVar(&configPath, "config", "", "path to config file")
-	flag.Parse()
+	configPath = os.Getenv("CONFIG_PATH")
 	if configPath != "" {
 		return configPath
 	}

@@ -21,7 +21,7 @@ func main() {
 	}
 
 	// INIT config
-	cfg := config.MustLoad(config.GetConfigPath())
+	cfg := config.MustLoadConfig()
 
 	// INIT logger
 	log := logger.New(cfg.Env)

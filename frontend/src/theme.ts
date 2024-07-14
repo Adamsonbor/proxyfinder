@@ -99,7 +99,7 @@ const lightTheme = createTheme({
 	},
 	typography: {
 		fontSize: 16,
-		uppercaseSize: 12
+		uppercaseSize: 14
 	},
 	inputs: {
 		width: 16,

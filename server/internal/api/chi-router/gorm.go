@@ -33,7 +33,7 @@ func New(log *slog.Logger, storage *gormstorage.Storage) *Server {
 
 	crud := r.Route("/", func(r chi.Router) {
 		r.Route("/{id}", func(r chi.Router) {
-			r.Use(idMiddleware)
+			r.Use(idPermissionMiddleware)
 			r.Get("/", s.Get)
 			r.Put("/", s.Update)
 			r.Delete("/", s.Delete)
@@ -113,6 +113,7 @@ func (s *Server) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&inst)
 	if err != nil {
 		log.Error("decode", slog.String("err", err.Error()))
@@ -147,6 +148,7 @@ func (s *Server) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&inst)
 	if err != nil {
 		log.Error("decode", slog.String("err", err.Error()))
@@ -158,6 +160,12 @@ func (s *Server) Update(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("params", slog.Int64("id", userId))
 
+	defer func() {
+		if recover() != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}()
 	reflect.ValueOf(inst).Elem().Field(0).SetInt(userId)
 	insts, err := s.storage.Update(inst)
 	if err != nil {
@@ -190,6 +198,12 @@ func (s *Server) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer func() {
+		if recover() != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}()
 	reflect.ValueOf(inst).Elem().Field(0).SetInt(userId)
 	err := s.storage.Delete(inst)
 	if err != nil {
@@ -201,7 +215,7 @@ func (s *Server) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func idMiddleware(next http.Handler) http.Handler {
+func idPermissionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		if id == "" {

@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	cfg := config.MustLoad("./config/local.yaml")
+	cfg := config.MustLoadConfig()
 
 	db, err := sqlx.Open("sqlite3", cfg.Database.Path)
 	if err != nil {

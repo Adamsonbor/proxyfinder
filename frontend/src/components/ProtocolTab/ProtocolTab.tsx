@@ -8,8 +8,11 @@ export default function ProtocolTab(props: ChipProps) {
 			sx={{
 				...props.sx,
 				height: "20px",
-				padding: "1px 8px",
-				width: "fit-content"
+				padding: "10px 16px",
+				width: "fit-content",
+				'& .MuiChip-label': {
+					fontSize: "10px",
+				},
 			}} />
 	)
 }
