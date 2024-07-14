@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
 type Server struct {
@@ -43,6 +44,11 @@ func New(log *slog.Logger, storage *gormstorage.Storage) *Server {
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(cors.Handler(cors.Options{
+			AllowedOrigins:   []string{"https://*", "http://*"},
+			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+			MaxAge:           300, // Maximum value not ignored by any of major browsers	
+		}))
 		r.Mount("/proxy", crud)
 		r.Mount("/status", crud)
 		r.Mount("/country", crud)

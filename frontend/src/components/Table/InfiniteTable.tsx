@@ -1,6 +1,9 @@
 import { useTheme } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import ProtocolTab from "../ProtocolTab/ProtocolTab";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useConfig } from "../../config";
 
 const rows = [
 	{ 'ip': '1.1.1.1', 'port': '80', 'country': 'United States', 'protocols': ['HTTPS', "HTTP"], 'response': '200', 'updated': '2021-01-01', 'available': true },
@@ -14,8 +17,25 @@ interface Props {
 	className?: string
 }
 
+interface Country {
+	Name: string
+	Code: string
+}
+
+interface Proxy {
+	ip: string
+	port: string
+	country: string
+	protocols: string[]
+	response: string
+	updated: string
+	available: boolean
+}
+
 export default function InfiniteTable(props: Props) {
 	const theme = useTheme();
+	const config = useConfig();
+
 	const getBackgroundColor = (protocol: string) => {
 		return theme.palette.grayTabProtocol
 		switch (protocol) {
@@ -46,6 +66,36 @@ export default function InfiniteTable(props: Props) {
 				return theme.palette.blue;
 		}
 	}
+
+	const [countries, setCountries] = useState<Country[]>([])
+	const [proxies, setProxies] = useState<Proxy[]>([])
+
+	function getCountries(): Country[] {
+		axios.get(config.apiUrl + "/country").then((response) => {
+			setCountries(response.data as Country[])
+		}).catch((error) => {
+			console.log(error)
+		})
+
+		return countries;
+	}
+
+	function getProxies(): Proxy[] {
+		axios.get(config.apiUrl + "/proxy").then((response) => {
+			setProxies(response.data as Proxy[])
+		}).catch((error) => {
+			console.log(error)
+		})
+
+		return proxies;
+	}
+
+	useEffect(() => {
+		getCountries();
+		getProxies();
+	}, [])
+
+	console.log(countries.map((country) => country.Code.toLowerCase()))
 
 	const columns = [
 		{ field: 'ip', headerName: 'IP', minWidth: 100, flex: 1 },
