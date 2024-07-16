@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"os"
-
+	_ "proxyfinder/migrations/goose"
 
 	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite"
@@ -12,9 +12,11 @@ import (
 
 func main() {
 	flags := flag.NewFlagSet("migrations", flag.ExitOnError)
-	flags.String("dir", "./migrations", "directory with migration files")
+	dir := flags.String("dir", "./migrations", "directory with migration files")
 	flags.Parse(os.Args[1:])
 	args := flags.Args()
+
+
 
 	if len(args) < 3 {
 		flags.Usage()
@@ -39,7 +41,7 @@ func main() {
 		arguments = args[3:]
 	}
 
-	err = goose.RunContext(context.Background(), command, db, args[0], arguments...)
+	err = goose.RunContext(context.Background(), command, db, *dir, arguments...)
 	if err != nil {
 		panic(err)
 	}

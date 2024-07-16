@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"os"
 	"proxyfinder/internal/collector/geonode"
+	"proxyfinder/internal/logger"
 	"proxyfinder/internal/storage/sqlite-storage"
 
+	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pressly/goose/v3"
 )
@@ -35,8 +37,14 @@ func upFillProxyTable(ctx context.Context, tx *sql.Tx) error {
 		return err
 	}
 
-	countryStorage := sqlite.NewCountry(nil)
-	proxyStorage := sqlite.NewProxy(nil)
+	db, err := sqlx.Open("sqlite3", "storage/local.db")
+	if err != nil {
+		return err
+	}
+
+	countryStorage := sqlite.NewCountry(db)
+	proxyStorage := sqlite.NewProxy(db)
+	log := logger.New("debug")
 
 	for _, file := range files {
 		if file.IsDir() {
@@ -65,7 +73,7 @@ func upFillProxyTable(ctx context.Context, tx *sql.Tx) error {
 			return fmt.Errorf("len(content.Data) == 0")
 		}
 
-		proxies, err := geonode.ApiResponseToProxies(ctx, nil, tx, countryStorage, content.Data)
+		proxies, err := geonode.ApiResponseToProxies(ctx, log, tx, countryStorage, content.Data)
 		if err != nil {
 			return err
 		}
@@ -91,7 +99,13 @@ func downFillProxyTable(ctx context.Context, tx *sql.Tx) error {
 		return err
 	}
 
-	countryStorage := sqlite.NewCountry(nil)
+	db, err := sqlx.Open("sqlite3", "storage/local.db")
+	if err != nil {
+		return err
+	}
+
+	countryStorage := sqlite.NewCountry(db)
+	log := logger.New("debug")
 
 	for _, file := range files {
 		if file.IsDir() {
@@ -120,7 +134,7 @@ func downFillProxyTable(ctx context.Context, tx *sql.Tx) error {
 			return fmt.Errorf("len(content.Data) == 0")
 		}
 
-		proxies, err := geonode.ApiResponseToProxies(ctx, nil, tx, countryStorage, content.Data)
+		proxies, err := geonode.ApiResponseToProxies(ctx, log, tx, countryStorage, content.Data)
 		if err != nil {
 			return err
 		}

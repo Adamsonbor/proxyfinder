@@ -1,34 +1,48 @@
+SRC_DIR=cmd
+SRC=$(shell find cmd -name "*.go")
+BIN_DIR=build
+BIN=$(addprefix build/,$(patsubst cmd/%/main.go,%,$(SRC)))
+
+DB_PATH=./storage/local.db
+MIGRATIONS_DIR=./migrations/goose
 GOOSE_PATH=build/goose
-SOURCE_DIR=cmd
-SOURCE=$(shell find cmd -name "*.go")
-BUILD_DIR=build
-BUILDFILES=$(patsubst $(SOURCE_DIR)/%,$(BUILD_DIR)/%, $(dir $(SOURCE)))
+GOOSE_COMMAND=$(GOOSE_PATH) -dir $(MIGRATIONS_DIR) sqlite3 $(DB_PATH)
 
 
-build: $(BUILDFILES)
-	rm -r $(BUILD_DIR)/*
-	@echo $(BUILDFILES)
-	@echo $(SOURCE)
+build: $(BIN_DIR) $(BIN)
 
-#build/geonode: cmd/collector/geonode/main.go
-$(BUILD_DIR)/%: $(SOURCE_DIR)/%/main.go
+$(BIN_DIR)/%: $(SRC_DIR)/%/main.go
 	CGO_ENABLED=1 \
 	GOOS=linux \
 	GOARCH=amd64 \
 	go build -ldflags "-linkmode external -extldflags '-static'" -o $@ $<
 
-geonode: $(BUILD_DIR)/geonode
+$(BIN_DIR):
+	mkdir -p $@
+
+clean:
+	rm -rf $(BIN_DIR)
+
+re: clean build
+
+goose: goose-rm $(BIN_DIR)/goose
+
+goose-rm:
+	rm $(BIN_DIR)/goose
+
+goose-up: goose
+	$(GOOSE_COMMAND) up
+
+goose-reset: goose
+	$(GOOSE_COMMAND) reset
+	$(GOOSE_COMMAND) up
+
+goose-down: goose
+	$(GOOSE_COMMAND) down
+
+goose-status: goose
+	$(GOOSE_COMMAND) status
 
 
-goose-up:
-	$(GOOSE_PATH) -dir $(MIGRATIONS_DIR) sqlite3 $(DB_FILE) up
 
-goose-reset:
-	$(GOOSE_PATH) -dir $(MIGRATIONS_DIR) sqlite3 $(DB_FILE) reset
-	$(GOOSE_PATH) -dir $(MIGRATIONS_DIR) sqlite3 $(DB_FILE) up
-
-goose-down:
-	$(GOOSE_PATH) -dir $(MIGRATIONS_DIR) sqlite3 $(DB_FILE) down
-
-
-.PHONY: build goose-up goose-reset goose-down
+.PHONY: build goose-up goose-reset goose-down goose-status clean re
