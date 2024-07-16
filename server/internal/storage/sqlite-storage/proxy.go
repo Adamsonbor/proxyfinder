@@ -141,3 +141,37 @@ func (s *ProxyStorage) UpdateStatus(ctx context.Context, id int64, statusId int6
 
 	return nil
 }
+
+func (s *ProxyStorage) Deletex(ctx context.Context, tx storage.Tx, id int64) error {
+	query := "DELETE FROM proxy WHERE id = ?"
+	_, err := tx.ExecContext(ctx, query, id)
+	return err
+}
+
+func (s *ProxyStorage) Savex(ctx context.Context, tx storage.Tx, inst *domain.Proxy) (int64, error) {
+	query := "INSERT INTO proxy (ip, port, protocol, status_id, country_id) VALUES (?, ?, ?, ?, ?) RETURNING id"
+	res, err := tx.ExecContext(ctx, query, inst.Ip, inst.Port, inst.Protocol, inst.StatusId, inst.CountryId)
+	if err != nil {
+		return 0, err
+	}
+
+	return res.LastInsertId()
+}
+
+func (s *ProxyStorage) SaveAllx(ctx context.Context, tx storage.Tx, proxies []domain.Proxy) error {
+	stmt, err := tx.Prepare(`INSERT INTO proxy (ip, port, protocol, status_id, country_id)
+							VALUES (?, ?, ?, ?, ?)`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, v := range proxies {
+		_, err := stmt.Exec(v.Ip, v.Port, v.Protocol, v.StatusId, v.CountryId)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

@@ -96,6 +96,7 @@ export default function InfiniteTable(props: Props) {
 	}, [])
 
 	console.log(countries.map((country) => country.Code.toLowerCase()))
+	console.log(proxies.slice(0, 10))
 
 	const columns = [
 		{ field: 'ip', headerName: 'IP', minWidth: 100, flex: 1 },

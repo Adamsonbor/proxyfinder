@@ -2,28 +2,32 @@ package geonode
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"proxyfinder/internal/domain"
 	"proxyfinder/internal/storage"
 	"strconv"
-	"sync"
 )
 
 type Collector struct {
-	url string
-	log *slog.Logger
-	proxyStorage storage.ProxyStorage
+	Url            string
+	log            *slog.Logger
+	proxyStorage   storage.ProxyStorage
 	countryStorage storage.CountryStorage
 }
 
 func New(log *slog.Logger, proxtStorage storage.ProxyStorage, countryStorage storage.CountryStorage) *Collector {
+	log.Info("New Collector")
+
 	return &Collector{
-		url: "https://proxylist.geonode.com/api/proxy-list?protocols=http%2Chttps&limit=500&sort_by=lastChecked&sort_type=asc",
-		log: log,
-		proxyStorage: proxtStorage,
+		Url:            "https://proxylist.geonode.com/api/proxy-list?limit=500&sort_by=lastChecked&sort_type=desc",
+		log:            log,
+		proxyStorage:   proxtStorage,
 		countryStorage: countryStorage,
 	}
 }
@@ -56,77 +60,113 @@ type ApiProxy struct {
 	ResponseTime       int
 }
 
-func (c *Collector) Collect(ctx context.Context) ([]domain.Proxy, error) {
+func (c *Collector) Collect(ctx context.Context, url string, filename string) ([]domain.Proxy, error) {
 	const op = "collector.geonode.Collector.Collect"
 
-	log := c.log.With(slog.String("op", op))
+	log := c.log.With(slog.String("op", op), slog.String("url", url))
+	log.Info("Collect")
 
-	res, err := http.Get(c.url)
+	res, err := http.Get(url)
 	if err != nil {
+		log.Warn("http.Get failed", slog.String("err", err.Error()))
 		return nil, err
 	}
-	
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
+		log.Warn("io.ReadAll failed", slog.String("err", err.Error()))
 		return nil, err
 	}
-	//
-	// file, err := os.OpenFile("./index.json", os.O_CREATE|os.O_WRONLY, 0644)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// n, err := file.WriteString(string(body))
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// if n < 1 {
-	// 	return nil, fmt.Errorf("Error writing string to file: %d bytes", n)
-	// }
-	//
-	// fmt.Println(string(body))
-	//
-	// return nil, nil
 
-	// body, err := os.ReadFile("index.json")
-	// if err != nil {
-	// 	return nil, err
-	// }
-	
-	var jsonData ApiResponse
-	err = json.Unmarshal(body, &jsonData)
+	err = c.SaveBodyToFile(ctx, filename, body)
 	if err != nil {
-		log.Warn("Unmarshal error", slog.String("body", string(body)))
+		log.Warn("SaveBodyToFile failed", slog.String("err", err.Error()))
 		return nil, err
 	}
-	
-	proxies, err := c.ApiResponseToProxies(ctx, jsonData.Data)
-	if err != nil {
-		return nil, err
-	}
-	
-	wg := sync.WaitGroup{}
-	for _, v := range proxies {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-	
-			_, err := c.proxyStorage.Save(ctx, &v)
-			if err != nil {
-				log.Warn("ProxyStorage.Save failed", slog.Any("err", err))
-			}
-		}()
-	}
-	
-	wg.Wait()
 
+	log.Info("Saved body to file")
 
-	return proxies, nil
+	return nil, nil
 }
 
-func (c *Collector) ApiResponseToProxies(ctx context.Context, res []ApiProxy) ([]domain.Proxy, error) {
-	countries, err := c.countryStorage.GetAll(ctx)
+func (c *Collector) NewPageScheduler() func() string {
+	page := 0
+
+	return func() string {
+		c.log.Info("PageScheduler", slog.Int("page", page))
+		page++
+		return fmt.Sprintf("%s&page=%d", c.Url, page)
+	}
+
+}
+
+func (c *Collector) SaveBodyToFile(ctx context.Context, filename string, body []byte) error {
+	log := c.log.With(slog.String("op", "collector.geonode.Collector.SaveBodyToFile"))
+	log.Info("SaveBodyToFile", slog.Int("len", len(body)))
+
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
+		log.Error("os.OpenFile failed", slog.String("err", err.Error()))
+		return err
+	}
+
+	n, err := file.Write(body)
+	if err != nil {
+		log.Error("file.Write failed", slog.String("err", err.Error()))
+		return err
+	}
+	if n != len(body) {
+		log.Error("failed to write all bytes")
+		return fmt.Errorf("failed to write all bytes")
+	}
+
+	return nil
+}
+
+func (c *Collector) SaveProxiesToFile(ctx context.Context, filename string, proxies []domain.Proxy) error {
+	log := c.log.With(slog.String("op", "collector.geonode.Collector.SaveProxiesToFile"))
+	log.Info("SaveProxiesToFile", slog.Int("len", len(proxies)))
+
+	file, err := os.OpenFile("./index.json", os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Error("os.OpenFile failed", slog.String("err", err.Error()))
+		return err
+	}
+
+	var bytes []byte
+	bytes, err = json.Marshal(proxies)
+	if err != nil {
+		log.Error("json.Marshal failed", slog.String("err", err.Error()))
+		return err
+	}
+
+	n, err := file.Write(bytes)
+	if err != nil {
+		log.Error("file.Write failed", slog.String("err", err.Error()))
+		return err
+	}
+	if n != len(bytes) {
+		log.Error("failed to write all bytes")
+		return fmt.Errorf("failed to write all bytes")
+	}
+
+	return nil
+}
+
+// TODO: delete this shit code and write normal one
+func ApiResponseToProxies(
+	ctx context.Context,
+	log *slog.Logger,
+	tx *sql.Tx,
+	countryStorage storage.CountryStorage,
+	res []ApiProxy) ([]domain.Proxy, error) {
+
+	log = log.With(slog.String("op", "collector.geonode.Collector.ApiResponseToProxies"))
+	log.Info("ApiResponseToProxies", slog.Int("len", len(res)))
+
+	countries, err := countryStorage.GetAll(ctx)
+	if err != nil {
+		log.Error("countryStorage.GetAll failed", slog.String("err", err.Error()))
 		return nil, err
 	}
 	countryMap := map[string]int64{}
@@ -140,14 +180,16 @@ func (c *Collector) ApiResponseToProxies(ctx context.Context, res []ApiProxy) ([
 		proxy.Ip = v.Ip
 		port, err := strconv.Atoi(v.Port)
 		if err != nil {
+			log.Error("strconv.Atoi failed", slog.String("err", err.Error()))
 			return nil, err
 		}
 		proxy.Port = port
 		proxy.Protocol = v.Protocols[0]
 		id, ok := countryMap[v.Country]
 		if !ok {
-			id, err = c.countryStorage.Save(ctx, &domain.Country{Code: v.Country})
+			id, err = countryStorage.Savex(ctx, tx, &domain.Country{Code: v.Country})
 			if err != nil {
+				log.Error("countryStorage.Save failed", slog.String("err", err.Error()), slog.Any("country", v.Country))
 				return nil, err
 			}
 		}
@@ -155,6 +197,8 @@ func (c *Collector) ApiResponseToProxies(ctx context.Context, res []ApiProxy) ([
 
 		proxies = append(proxies, proxy)
 	}
+
+	log.Info("ApiResponseToProxies done")
 
 	return proxies, nil
 }

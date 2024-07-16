@@ -2,10 +2,17 @@ package storage
 
 import (
 	"context"
+	"database/sql"
 	"proxyfinder/internal/domain"
 
 	"github.com/jmoiron/sqlx"
 )
+
+type Tx interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	Prepare(query string) (*sql.Stmt, error)
+}
 
 type ProxyUpdate struct {
 	Ip           *string
@@ -23,6 +30,8 @@ type ProxyStorage interface {
 	UpdateStatus(ctx context.Context, id int64, statusId int64) error
 	Save(ctx context.Context, proxy *domain.Proxy) (int64, error)
 	SaveAll(ctx context.Context, proxies []domain.Proxy) error
+	Savex(ctx context.Context, tx Tx, inst *domain.Proxy) (int64, error)
+	SaveAllx(ctx context.Context, tx Tx, insts []domain.Proxy) error
 
 	Begin() (*sqlx.Tx, error)
 }
@@ -32,6 +41,8 @@ type CountryStorage interface {
 	GetByCode(ctx context.Context, code string) (*domain.Country, error)
 	GetAll(ctx context.Context) ([]domain.Country, error)
 	SaveAll(ctx context.Context, insts []domain.Country) error
+	Savex(ctx context.Context, tx Tx, inst *domain.Country) (int64, error)
+	SaveAllx(ctx context.Context, tx Tx, insts []domain.Country) error
 }
 
 type StatusStorage interface {
