@@ -7,13 +7,20 @@ import React from 'react'
 import { Container, ThemeProvider } from '@mui/material'
 import InfiniteTable from './components/Table/InfiniteTable';
 import LeftPanel from './components/LeftPanel/LeftPanel';
-import { ConfigProvider } from './config';
+import { ConfigProvider, useConfig } from './config';
+import { Country, useApi, Proxy } from './utils/api/api';
 
 export default function App() {
+	const config = useConfig();
+
 	const [theme, setTheme] = React.useState(lightTheme)
+
 	const toggleTheme = () => {
 		setTheme(theme === lightTheme ? darkTheme : lightTheme);
 	};
+	let proxies: Proxy[] = useApi(`${config.apiUrl}/proxy`).data;
+	let countries: Country[] = useApi(`${config.apiUrl}/country`).data;
+
 	return (
 		<>
 			<ConfigProvider>
@@ -40,7 +47,10 @@ export default function App() {
 							</div>
 							<div className="row pt-5">
 								<LeftPanel className="col-2" />
-								<InfiniteTable className="col-10" />
+								<InfiniteTable
+									proxies={proxies}
+									countries={countries}
+									className="col-10" />
 							</div>
 						</div>
 					</Container>

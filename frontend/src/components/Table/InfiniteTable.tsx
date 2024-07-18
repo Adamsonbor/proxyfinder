@@ -1,144 +1,73 @@
 import { useTheme } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import ProtocolTab from "../ProtocolTab/ProtocolTab";
-import { useEffect, useState } from "react";
-import axios from "axios";
-import { useConfig } from "../../config";
-
-const rows = [
-	{ 'ip': '1.1.1.1', 'port': '80', 'country': 'United States', 'protocols': ['HTTPS', "HTTP"], 'response': '200', 'updated': '2021-01-01', 'available': true },
-	{ 'ip': '1.1.1.1', 'port': '80', 'country': 'United States', 'protocols': ['HTTPS', "HTTP"], 'response': '200', 'updated': '2021-01-01', 'available': false },
-	{ 'ip': '1.1.1.1', 'port': '80', 'country': 'United States', 'protocols': ['HTTPS', "HTTP"], 'response': '200', 'updated': '2021-01-01', 'available': true },
-	{ 'ip': '1.1.1.1', 'port': '80', 'country': 'United States', 'protocols': ['HTTPS', "HTTP", "SOCKS4", "SOCKS5"], 'response': '200', 'updated': '2021-01-01', 'available': true },
-]
+import { Country, Proxy } from "../../utils/api/api";
 
 interface Props {
-	rows?: object
-	className?: string
+	className?: string;
+	proxies?: Proxy[];
+	countries?: Country[];
 }
 
-interface Country {
-	Name: string
-	Code: string
-}
-
-interface Proxy {
-	ip: string
-	port: string
-	country: string
-	protocols: string[]
-	response: string
-	updated: string
-	available: boolean
-}
-
-export default function InfiniteTable(props: Props) {
+export default function InfiniteTable({
+	className = '',
+	proxies = [],
+	countries = [],
+}: Props) {
 	const theme = useTheme();
-	const config = useConfig();
-
-	const getBackgroundColor = (protocol: string) => {
-		return theme.palette.grayTabProtocol
-		switch (protocol) {
-			case "HTTP":
-				return theme.palette.background.blue;
-			case "HTTPS":
-				return theme.palette.background.purple;
-			case "SOCKS4":
-				return theme.palette.background.green;
-			case "SOCKS5":
-				return theme.palette.background.red;
-			default:
-				return theme.palette.blue;
-		}
-	}
-	const getTextColor = (protocol: string) => {
-		return theme.palette.grayTextProtocol
-		switch (protocol) {
-			case "HTTP":
-				return theme.palette.text.blue;
-			case "HTTPS":
-				return theme.palette.text.purple;
-			case "SOCKS4":
-				return theme.palette.text.green;
-			case "SOCKS5":
-				return theme.palette.text.red;
-			default:
-				return theme.palette.blue;
-		}
-	}
-
-	const [countries, setCountries] = useState<Country[]>([])
-	const [proxies, setProxies] = useState<Proxy[]>([])
-
-	function getCountries(): Country[] {
-		axios.get(config.apiUrl + "/country").then((response) => {
-			setCountries(response.data as Country[])
-		}).catch((error) => {
-			console.log(error)
-		})
-
-		return countries;
-	}
-
-	function getProxies(): Proxy[] {
-		axios.get(config.apiUrl + "/proxy").then((response) => {
-			setProxies(response.data as Proxy[])
-		}).catch((error) => {
-			console.log(error)
-		})
-
-		return proxies;
-	}
-
-	useEffect(() => {
-		getCountries();
-		getProxies();
-	}, [])
-
-	console.log(countries.map((country) => country.Code.toLowerCase()))
-	console.log(proxies.slice(0, 10))
 
 	const columns = [
-		{ field: 'ip', headerName: 'IP', minWidth: 100, flex: 1 },
-		{ field: 'port', headerName: 'PORT', minWidth: 100, flex: 1 },
-		{ field: 'country', headerName: 'COUNTRY', minWidth: 150, flex: 1 },
+		{ field: 'Ip', headerName: 'IP', minWidth: 100, flex: 1 },
+		{ field: 'Port', headerName: 'PORT', minWidth: 100, flex: 1 },
 		{
-			field: 'protocols',
-			headerName: 'PROTOCOLS',
-			minWidth: 100,
-			flex: 4,
+			field: 'CountryId',
+			headerName: 'COUNTRY',
+			minWidth: 150,
+			flex: 1,
 			renderCell: (params: any) => (
-				<div style={{
-					height: '100%',
-					display: 'flex',
-					alignItems: 'center',
-					flexDirection: 'row',
-					flexWrap: 'wrap',
-					gap: '4px',
-				}}>
-					{params.row.protocols.map((protocol: string, index: number) => (
-						<ProtocolTab
-							key={index}
-							label={protocol}
-							sx={{
-								backgroundColor: getBackgroundColor(protocol),
-								color: getTextColor(protocol),
-							}}
-						/>
-					))}
-				</div>
+				<>
+				<span 
+				style={{marginRight: "5px"}}
+				className={`fi fi-${getCountryCode(countries, params.row.CountryId).toLowerCase()}`}>
+				</span>
+					{getCountryName(countries, params.row.CountryId)}
+				</>
 			),
 		},
-		{ field: 'response', headerName: 'RESPONSE', minWidth: 100, flex: 1 },
-		{ field: 'updated', headerName: 'UPDATED', minWidth: 150, flex: 1 },
 		{
-			field: 'available',
+			field: 'Protocol',
+			headerName: 'PROTOCOL',
+			minWidth: 100,
+			flex: 1,
+			renderCell: (params: any) => (
+				<ProtocolTab
+					label={params.row.Protocol}
+					sx={{
+						backgroundColor: theme.palette.grayTabProtocol,
+						color: theme.palette.grayTextProtocol,
+					}}
+				/>
+			),
+		},
+		{
+			field: 'ResponseTime',
+			headerName: 'RESPONSE',
+			minWidth: 100, flex: 1,
+			renderCell: (params: any) => (
+				<>
+					{params.row.ResponseTime}ms
+				</>
+			)
+		},
+		{ field: 'UpdatedAt', headerName: 'UPDATED', minWidth: 150, flex: 1 },
+		{
+			field: 'StatusId',
 			headerName: 'AVAILABLE',
 			minWidth: 150,
 			flex: 1,
 			renderCell: (params: any) => (
 				<>
-					{params.row.available ?
+					{params.row.StatusId == 2 ?
 						<ProtocolTab
 							label="Available"
 							sx={{
@@ -159,15 +88,18 @@ export default function InfiniteTable(props: Props) {
 			)
 		},
 	]
+	if (!proxies || !countries) {
+		return <></>;
+	}
 	return (
 		<DataGrid
-			rows={rows.map((row, index) => ({ ...row, id: index }))}
+			rows={proxies.map((proxy, index) => ({ ...proxy, id: index }))}
 			columns={columns}
 			hideFooter
 			autoHeight
 			hideFooterPagination
 			hideFooterSelectedRowCount
-			className={props.className}
+			className={className}
 			sx={{
 				border: "none",
 				fontSize: '14px',
@@ -191,4 +123,41 @@ export default function InfiniteTable(props: Props) {
 			disableColumnMenu
 		/>
 	);
+
+	// function getBackgroundColor(protocol: string) {
+	// 	switch (protocol) {
+	// 		case "HTTP":
+	// 			return theme.palette.background.blue;
+	// 		case "HTTPS":
+	// 			return theme.palette.background.purple;
+	// 		case "SOCKS4":
+	// 			return theme.palette.background.green;
+	// 		case "SOCKS5":
+	// 			return theme.palette.background.red;
+	// 		default:
+	// 			return theme.palette.blue;
+	// 	}
+	// }
+	// function getTextColor(protocol: string) {
+	// 	switch (protocol) {
+	// 		case "HTTP":
+	// 			return theme.palette.text.blue;
+	// 		case "HTTPS":
+	// 			return theme.palette.text.purple;
+	// 		case "SOCKS4":
+	// 			return theme.palette.text.green;
+	// 		case "SOCKS5":
+	// 			return theme.palette.text.red;
+	// 		default:
+	// 			return theme.palette.blue;
+	// 	}
+	// }
+
+	function getCountryCode(countries: Country[], countryId: number) {
+		return countries.find((country: Country) => country.Id == countryId)?.Code || "Unknown"
+	}
+
+	function getCountryName(countries: Country[], countryId: number) {
+		return countries.find((country: Country) => country.Id == countryId)?.Name || "Unknown"
+	}
 }
