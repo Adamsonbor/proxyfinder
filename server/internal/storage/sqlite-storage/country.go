@@ -3,7 +3,6 @@ package sqlite
 import (
 	"context"
 	"proxyfinder/internal/domain"
-	"proxyfinder/internal/storage"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -81,7 +80,7 @@ func (c *Country) SaveAll(ctx context.Context, insts []domain.Country) error {
 	return nil
 }
 
-func (c *Country) Savex(ctx context.Context, tx storage.Tx, inst *domain.Country) (int64, error) {
+func (c *Country) Savex(ctx context.Context, tx *sqlx.Tx, inst *domain.Country) (int64, error) {
 	query := "INSERT INTO country (name, code) VALUES (?, ?) RETURNING id"
 
 	res, err := tx.ExecContext(ctx, query, inst.Name, inst.Code)
@@ -92,7 +91,7 @@ func (c *Country) Savex(ctx context.Context, tx storage.Tx, inst *domain.Country
 	return res.LastInsertId()
 }
 
-func (c *Country) SaveAllx(ctx context.Context, tx storage.Tx, insts []domain.Country) error {
+func (c *Country) SaveAllx(ctx context.Context, tx *sqlx.Tx, insts []domain.Country) error {
 	query := "INSERT INTO country (name, code) VALUES (?, ?)"
 	stmt, err := tx.Prepare(query)
 	if err != nil {

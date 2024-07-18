@@ -32,11 +32,11 @@ type Country struct {
 	UpdatedAt time.Time `db:"updated_at"`
 }
 func (c *Country) TableName() string { return "country" }
-
-type Protocol struct {
-	Id        int64
-	Name      string
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
-}
-func (p *Protocol) TableName() string { return "protocol" }
+//
+// type Protocol struct {
+// 	Id        int64
+// 	Name      string
+// 	CreatedAt time.Time `db:"created_at"`
+// 	UpdatedAt time.Time `db:"updated_at"`
+// }
+// func (p *Protocol) TableName() string { return "protocol" }

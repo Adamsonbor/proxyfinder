@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"os"
-	_ "proxyfinder/migrations/goose"
 
 	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite"

@@ -245,8 +245,6 @@ func (s *Server) GetType(path string) interface{} {
 		return &domain.Status{}
 	} else if strings.Contains(path, "country") {
 		return &domain.Country{}
-	} else if strings.Contains(path, "protocol") {
-		return &domain.Protocol{}
 	}
 	return nil
 }
@@ -258,8 +256,6 @@ func (s *Server) GetSliceOfType(path string) interface{} {
 		return &[]domain.Status{}
 	} else if strings.Contains(path, "country") {
 		return &[]domain.Country{}
-	} else if strings.Contains(path, "protocol") {
-		return &[]domain.Protocol{}
 	}
 	return nil
 }

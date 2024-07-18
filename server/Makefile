@@ -5,7 +5,7 @@ BIN=$(addprefix build/,$(patsubst cmd/%/main.go,%,$(SRC)))
 
 DB_PATH=./storage/local.db
 MIGRATIONS_DIR=./migrations/goose
-GOOSE_PATH=build/goose
+GOOSE_PATH=$(BIN_DIR)/goose
 GOOSE_COMMAND=$(GOOSE_PATH) -dir $(MIGRATIONS_DIR) sqlite3 $(DB_PATH)
 
 
@@ -25,24 +25,20 @@ clean:
 
 re: clean build
 
-goose: goose-rm $(BIN_DIR)/goose
-
-goose-rm:
-	rm $(BIN_DIR)/goose
-
-goose-up: goose
+goose-up:
 	$(GOOSE_COMMAND) up
 
-goose-reset: goose
+goose-reset:
 	$(GOOSE_COMMAND) reset
 	$(GOOSE_COMMAND) up
 
-goose-down: goose
+goose-down:
 	$(GOOSE_COMMAND) down
 
-goose-status: goose
+goose-status:
 	$(GOOSE_COMMAND) status
 
-
+goose-create:
+	$(GOOSE_COMMAND) create $(ARG)
 
 .PHONY: build goose-up goose-reset goose-down goose-status clean re

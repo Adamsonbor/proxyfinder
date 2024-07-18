@@ -2,7 +2,6 @@ package geonode
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +11,17 @@ import (
 	"proxyfinder/internal/domain"
 	"proxyfinder/internal/storage"
 	"strconv"
+	"strings"
+
+	"github.com/jmoiron/sqlx"
+)
+
+const (
+	STATUS_UNAVAILABLE = 1
+)
+
+var (
+	ErrCountryNotFound = fmt.Errorf("country not found")
 )
 
 type Collector struct {
@@ -154,10 +164,10 @@ func (c *Collector) SaveProxiesToFile(ctx context.Context, filename string, prox
 }
 
 // TODO: delete this shit code and write normal one
-func ApiResponseToProxies(
+func ApiResponseToProxiesX(
 	ctx context.Context,
 	log *slog.Logger,
-	tx *sql.Tx,
+	tx *sqlx.Tx,
 	countryStorage storage.CountryStorage,
 	res []ApiProxy) ([]domain.Proxy, error) {
 
@@ -216,4 +226,40 @@ func GetUniqueStrings(insts []string) []string {
 	}
 
 	return out
+}
+
+func ApiResponseToProxies(log *slog.Logger, countries []domain.Country, res []ApiProxy) ([]domain.Proxy, error) {
+
+	log.Info("ApiResponseToProxiesX", slog.Int("len", len(res)))
+
+	countryMap := map[string]int64{}
+	for _, v := range countries {
+		countryMap[strings.ToLower(v.Code)] = v.Id
+	}
+
+	proxies := []domain.Proxy{}
+	for _, v := range res {
+		proxy := domain.Proxy{}
+		proxy.Ip = v.Ip
+		port, err := strconv.Atoi(v.Port)
+		if err != nil {
+			log.Error("strconv.Atoi failed", slog.String("err", err.Error()))
+			return nil, err
+		}
+		proxy.Port = port
+		proxy.Protocol = v.Protocols[0]
+		id, ok := countryMap[strings.ToLower(v.Country)]
+		if !ok {
+			log.Error("country not found", slog.String("country", v.Country))
+			return nil, ErrCountryNotFound
+		}
+		proxy.CountryId = id
+		proxy.StatusId = STATUS_UNAVAILABLE
+
+		proxies = append(proxies, proxy)
+	}
+
+	log.Info("ApiResponseToProxiesX done")
+
+	return proxies, nil
 }

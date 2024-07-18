@@ -142,13 +142,13 @@ func (s *ProxyStorage) UpdateStatus(ctx context.Context, id int64, statusId int6
 	return nil
 }
 
-func (s *ProxyStorage) Deletex(ctx context.Context, tx storage.Tx, id int64) error {
+func (s *ProxyStorage) Deletex(ctx context.Context, tx *sqlx.Tx, id int64) error {
 	query := "DELETE FROM proxy WHERE id = ?"
 	_, err := tx.ExecContext(ctx, query, id)
 	return err
 }
 
-func (s *ProxyStorage) Savex(ctx context.Context, tx storage.Tx, inst *domain.Proxy) (int64, error) {
+func (s *ProxyStorage) Savex(ctx context.Context, tx *sqlx.Tx, inst *domain.Proxy) (int64, error) {
 	query := "INSERT INTO proxy (ip, port, protocol, status_id, country_id) VALUES (?, ?, ?, ?, ?) RETURNING id"
 	res, err := tx.ExecContext(ctx, query, inst.Ip, inst.Port, inst.Protocol, inst.StatusId, inst.CountryId)
 	if err != nil {
@@ -158,7 +158,7 @@ func (s *ProxyStorage) Savex(ctx context.Context, tx storage.Tx, inst *domain.Pr
 	return res.LastInsertId()
 }
 
-func (s *ProxyStorage) SaveAllx(ctx context.Context, tx storage.Tx, proxies []domain.Proxy) error {
+func (s *ProxyStorage) SaveAllx(ctx context.Context, tx *sqlx.Tx, proxies []domain.Proxy) error {
 	stmt, err := tx.Prepare(`INSERT INTO proxy (ip, port, protocol, status_id, country_id)
 							VALUES (?, ?, ?, ?, ?)`)
 	if err != nil {
