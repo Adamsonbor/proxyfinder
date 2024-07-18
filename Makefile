@@ -1,12 +1,18 @@
 MIGRATIONS_DIR = ./server/migrations/goose
 DB_FILE = ./server/storage/local.db
 
+SERVER_DIR = ./server
+
 # docker
-up: build
+up: server-build
 	docker-compose up --build
 
 down:
 	docker-compose down
+
+server-build:
+	make -C $(SERVER_DIR) build
+
 
 
 # bench
