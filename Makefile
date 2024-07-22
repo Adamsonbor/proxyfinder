@@ -16,6 +16,7 @@ server-build:
 	make -C $(SERVER_DIR) build
 
 frontend-build:
+	@cd frontend && yarn
 	@cd frontend && yarn build
 
 

@@ -16,20 +16,20 @@ services:
     depends_on:
       - proxyfinder-migrate
 
-  # proxyfinder-scheduler:
-  #   build: ./server/
-  #   container_name: proxyfinder-scheduler
-  #   command: bash -c " 
-  #     cd /app && \
-  #     build/scheduler --config /app/config/local.yaml --db /app/storage/local.db"
-  #   volumes:
-  #     - ./server/config:/app/config
-  #     - ./server/storage:/app/storage
-  #     - ./server/build:/app/build
-  #     - ./server/migrations:/app/migrations/
-  #     - ./server/Makefile:/app/Makefile
-  #   depends_on:
-  #     - proxyfinder-migrate
+  proxyfinder-scheduler:
+    build: ./server/
+    container_name: proxyfinder-scheduler
+    command: bash -c " 
+      cd /app && \
+      build/scheduler --config /app/config/local.yaml --db /app/storage/local.db"
+    volumes:
+      - ./server/config:/app/config
+      - ./server/storage:/app/storage
+      - ./server/build:/app/build
+      - ./server/migrations:/app/migrations/
+      - ./server/Makefile:/app/Makefile
+    depends_on:
+      - proxyfinder-migrate
   
   proxyfinder-migrate:
     build: ./server/
