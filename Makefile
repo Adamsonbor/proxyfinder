@@ -4,15 +4,22 @@ DB_FILE = ./server/storage/local.db
 SERVER_DIR = ./server
 
 # docker
-up: server-build
+up: server-build frontend-install
 	docker-compose up --build
 
 down:
 	docker-compose down
 
+build: server-build frontend-build
+
 server-build:
 	make -C $(SERVER_DIR) build
 
+frontend-build: frontend-install
+	@cd frontend && yarn build
+
+frontend-install:
+	@cd frontend && yarn
 
 
 # bench
