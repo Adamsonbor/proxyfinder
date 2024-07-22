@@ -2,6 +2,11 @@ package domain
 
 import "time"
 
+const (
+	STATUS_AVAILABLE    = int64(1)
+	STATUS_UNAVAILABLE = int64(2)
+)
+
 type Proxy struct {
 	Id           int64
 	Ip           string

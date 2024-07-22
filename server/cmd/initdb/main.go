@@ -229,6 +229,23 @@ func SaveProxies(ctx context.Context, log *slog.Logger, tx *sqlx.Tx, proxies []d
 	return nil
 }
 
+func GetStatuses(ctx context.Context, tx *sqlx.Tx) ([]domain.Status, error) {
+	statuses := []domain.Status{}
+	res, err := tx.QueryContext(ctx, "SELECT id, name FROM status")
+	if err != nil {
+		return nil, err
+	}
+	for res.Next() {
+		status := domain.Status{}
+		err = res.Scan(&status.Id, &status.Name)
+		if err != nil {
+			return nil, err
+		}
+		statuses = append(statuses, status)
+	}
+	return statuses, nil
+}
+
 func GetCountries(ctx context.Context, tx *sqlx.Tx) ([]domain.Country, error) {
 
 	countries := []domain.Country{}

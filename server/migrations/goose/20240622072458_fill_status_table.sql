@@ -1,8 +1,8 @@
 -- +goose Up
 -- +goose StatementBegin
 INSERT INTO status (name) VALUES 
-('not available'),
-('available');
+('Available'),
+('Unavailable');
 -- +goose StatementEnd
 
 -- +goose Down

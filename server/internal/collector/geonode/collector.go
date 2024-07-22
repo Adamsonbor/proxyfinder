@@ -16,10 +16,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-const (
-	STATUS_UNAVAILABLE = 1
-)
-
 var (
 	ErrCountryNotFound = fmt.Errorf("country not found")
 )
@@ -228,7 +224,11 @@ func GetUniqueStrings(insts []string) []string {
 	return out
 }
 
-func ApiResponseToProxies(log *slog.Logger, countries []domain.Country, res []ApiProxy) ([]domain.Proxy, error) {
+func ApiResponseToProxies(
+	log *slog.Logger,
+	countries []domain.Country,
+	res []ApiProxy,
+) ([]domain.Proxy, error) {
 
 	log.Info("ApiResponseToProxiesX", slog.Int("len", len(res)))
 
@@ -254,7 +254,7 @@ func ApiResponseToProxies(log *slog.Logger, countries []domain.Country, res []Ap
 			return nil, ErrCountryNotFound
 		}
 		proxy.CountryId = id
-		proxy.StatusId = STATUS_UNAVAILABLE
+		proxy.StatusId = domain.STATUS_UNAVAILABLE
 
 		proxies = append(proxies, proxy)
 	}

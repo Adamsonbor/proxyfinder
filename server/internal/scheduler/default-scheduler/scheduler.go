@@ -8,16 +8,12 @@ import (
 	"os/signal"
 	"proxyfinder/internal/checker"
 	"proxyfinder/internal/config"
+	"proxyfinder/internal/domain"
 	"proxyfinder/internal/storage"
 	"sync"
 	"time"
 )
 
-var (
-	batch              = 100
-	StatusNotAvailable = int64(1)
-	StatusAvailable    = int64(2)
-)
 
 type Scheduler struct {
 	cfg          *config.Config
@@ -95,9 +91,9 @@ func (s *Scheduler) Refresh(ctx context.Context) error {
 			cancel()
 
 			if available {
-				v.StatusId = StatusAvailable
+				v.StatusId = domain.STATUS_AVAILABLE
 			} else {
-				v.StatusId = StatusNotAvailable
+				v.StatusId = domain.STATUS_UNAVAILABLE
 			}
 
 			log.Debug("End checking", slog.Int64("StatusId", v.StatusId))
