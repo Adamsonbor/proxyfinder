@@ -10,8 +10,13 @@ up: server-build
 down:
 	docker-compose down
 
+build: server-build frontend-build
+
 server-build:
 	make -C $(SERVER_DIR) build
+
+frontend-build:
+	@cd frontend && yarn build
 
 
 
