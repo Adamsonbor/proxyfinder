@@ -1,4 +1,5 @@
 import React from "react"
+
 export enum ApiStatus {
 	// API request is being made
 	Loading,
@@ -21,23 +22,6 @@ interface IApiData {
 	status: ApiStatus
 	error: any,
 	data: any,
-}
-
-export interface Country {
-	Id: number
-	Name: string
-	Code: string
-}
-
-export interface Proxy {
-	Ip: string
-	Port: string
-	CountryId: number
-	StatusId: number
-	Protocol: string
-	ResponseTime: number
-	CreatedAt: string
-	UpdatedAt: string
 }
 
 export const useApi = (url: string) => {

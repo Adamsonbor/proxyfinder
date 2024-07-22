@@ -15,19 +15,19 @@ declare module '@mui/material' {
 		lightGray?: string
 		lightBlue?: string
 
-		backgroundWhite?: string
-		shapeFilterLight?: string
-		textBlack?: string
-		textGray?: string
-		stroke?: string
-		blueFilterTab?: string
-		blueFilterTextIcon?: string
-		greenTabAvailable?: string
-		greenTextAvailable?: string
-		redTabUnavailable?: string
-		redTextUnavailable?: string
-		grayTabProtocol?: string
-		grayTextProtocol?: string
+		backgroundWhite: string
+		shapeFilterLight: string
+		textBlack: string
+		textGray: string
+		stroke: string
+		blueFilterTab: string
+		blueFilterTextIcon: string
+		greenTabAvailable: string
+		greenTextAvailable: string
+		redTabUnavailable: string
+		redTextUnavailable: string
+		grayTabProtocol: string
+		grayTextProtocol: string
 	}
 	interface Palette extends PaletteOptions { }
 
@@ -59,16 +59,6 @@ declare module '@mui/material' {
 const lightTheme = createTheme({
 	palette: {
 		mode: 'light',
-		text: {
-			secondary: '#B8B8B8',
-			link: '#959595',
-			black: '#141414',
-			blue: '#0479D6',
-			lightBlue: '#2196F3',
-			red: '#6F0000',
-			green: '#026F00',
-			purple: '#9747FF',
-		},
 		blue: "#0479D6",
 		gray: "#B8B8B8",
 		lightGray: "#DDDDDD",
@@ -87,15 +77,6 @@ const lightTheme = createTheme({
 		greenTextAvailable: "#026F00E5",
 		redTabUnavailable: "#FFE2E2E5",
 		redTextUnavailable: "#6F0000E5",
-
-		background: {
-			blue: '#B6DFFF',
-			red: '#FEE8E7',
-			green: '#E8FEE7',
-			purple: '#EEE0FF',
-			lightBlue: '#E4EDF7',
-		}
-
 	},
 	typography: {
 		fontSize: 16,
@@ -110,27 +91,24 @@ const lightTheme = createTheme({
 const darkTheme = createTheme({
 	palette: {
 		mode: 'dark',
-		text: {
-			secondary: '#B8B8B8',
-			link: '#959595',
-			black: '#141414',
-			blue: '#0479D6',
-			lightBlue: '#2196F3',
-			red: '#6F0000',
-			green: '#026F00',
-			purple: '#9747FF',
-		},
 		blue: "#0479D6",
 		gray: "#B8B8B8",
 		lightGray: "#DDDDDD",
 		lightBlue: "#4B86FA",
-		background: {
-			blue: '#B6DFFF',
-			red: '#FEE8E7',
-			green: '#E8FEE7',
-			purple: '#EEE0FF',
-			lightBlue: '#E4EDF7',
-		}
+
+		backgroundWhite: "#202125",
+		shapeFilterLight: "#292A2E",
+		textBlack: "#FFFFFF",
+		textGray: "#B8B8B8",
+		stroke: "#3E3E3E",
+		blueFilterTab: "#E4EDF7F2",
+		blueFilterTextIcon: "#1B85D9",
+		grayTabProtocol: "#484848",
+		grayTextProtocol: "#D3D3D3",
+		greenTabAvailable: "#E8FEE7CC",
+		greenTextAvailable: "#026F00E5",
+		redTabUnavailable: "#FFE2E2E5",
+		redTextUnavailable: "#6F0000E5",
 
 	},
 	typography: {
@@ -138,9 +116,9 @@ const darkTheme = createTheme({
 		uppercaseSize: 14
 	},
 	inputs: {
-		width: 20,
-		height: 20,
-	}
+		width: 16,
+		height: 16,
+	},
 })
 
 export { lightTheme, darkTheme }

@@ -19,13 +19,13 @@ export default function SearchTab(props: Props) {
 				borderRadius: '24px',
 				width: 'fit-content',
 				lineHeight: '1px',
-				backgroundColor: theme.palette.background.lightBlue,
+				backgroundColor: theme.palette.blueFilterTab,
 				...props.sx
 			}} >
 			<span
 				style={{
 					fontSize: '12px',
-					color: theme.palette.text.lightBlue,
+					color: theme.palette.blueFilterTextIcon,
 					marginRight: '1rem'
 				}}>{props.label}</span>
 			<Close

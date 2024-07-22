@@ -4,42 +4,47 @@ import Stack from '@mui/material/Stack';
 import SearchTab from './SearchTab';
 import { useTheme } from '@mui/material';
 import { Search } from '@mui/icons-material';
-
-const top100Films = [
-	{ title: 'The Shawshank Redemption', year: 1994 },
-	{ title: 'The Godfather', year: 1972 },
-	{ title: 'The Godfather: Part II', year: 1974 },
-	{ title: 'The Dark Knight', year: 2008 },
-	{ title: '12 Angry Men', year: 1957 },
-	{ title: "Schindler's List", year: 1993 },
-	{ title: 'Pulp Fiction', year: 1994 },
-]
+import { useRef, useState } from 'react';
 
 interface Props {
 	label: string
 	values?: string[]
 	selectedValues?: string[]
-	setSelectedValues?: any
+	setSelectedValues?: (values: string[]) => void
 
 	sx?: any
 }
 
-export default function SearchMultipleAutocomplete(props: Props) {
+export default function SearchMultipleAutocomplete({
+	label = "Search...",
+	values = [],
+	selectedValues = [],
+	setSelectedValues = () => { },
+	sx = {},
+}: Props) {
+
 	const theme = useTheme();
-	// const [selectedValues, setSelectedValues] = useState<string[]>([]);
-	const selectedValues = props.selectedValues || [];
-	const setSelectedValues = props.setSelectedValues;
+	const inputRef = useRef<HTMLDivElement>(null);
+	const [valueState, setValueState] = useState<string>("");
+
 	const handleSelect = (value: string) => {
-		if (selectedValues.includes(value)) {
-			setSelectedValues(selectedValues.filter((val) => val !== value));
+		if (selectedValues?.includes(value)) {
+			setSelectedValues(selectedValues.filter((v) => v !== value));
 		} else {
 			setSelectedValues([...selectedValues, value]);
 		}
+
+		inputRef.current?.querySelector('input')?.blur();
+		setValueState("");
+	};
+
+	const removeSelectedValue = (value: string) => {
+		setSelectedValues(selectedValues.filter((v) => v !== value));
 	};
 
 	return (
 		<Stack spacing={1} sx={{
-			...props.sx,
+			...sx,
 		}}>
 			<Autocomplete
 				id="free-solo-demo"
@@ -48,14 +53,23 @@ export default function SearchMultipleAutocomplete(props: Props) {
 						top: -8,
 					},
 				}}
+				value={valueState}
+				onChange={(_: any, newValue: string | null) => {
+					handleSelect(newValue || "");
+				}}
 				freeSolo
 				filterSelectedOptions
-				options={props.values || (top100Films.map((option) => option.title))}
+				options={values}
+				clearOnEscape
+
 				renderInput={(params) => (
 					<TextField
 						{...params}
+						value={valueState}
+						onChange={(e) => setValueState(e.target.value)}
+						ref={inputRef}
 						sx={{
-							width: props.sx?.width,
+							width: sx?.width,
 							padding: 0,
 							'& fieldset': {
 								padding: 0,
@@ -76,11 +90,12 @@ export default function SearchMultipleAutocomplete(props: Props) {
 							},
 							'&& .MuiInputBase-root': {
 								padding: 0,
+								paddingLeft: '10px',
 								height: '30px',
 							},
 							'&& .MuiInputBase-input': {
 								padding: 0,
-								color: theme.palette.text.black,
+								color: theme.palette.textBlack,
 								fontSize: theme.typography.fontSize,
 							}
 						}}
@@ -92,12 +107,13 @@ export default function SearchMultipleAutocomplete(props: Props) {
 									fontSize: '14px',
 								}}>
 								<Search
+
 									sx={{
 										fontSize: theme.typography.fontSize,
 										padding: 0,
 										margin: 0
 									}} />
-								{props.label}
+								{label}
 							</div>
 						} />
 				)}
@@ -111,25 +127,17 @@ export default function SearchMultipleAutocomplete(props: Props) {
 							color: theme.palette.text.lightBlue,
 						}}
 						key={option}
-						onClick={() => {
-							handleSelect(option);
-							console.log(selectedValues);
-						}}>
+						onClick={() => { handleSelect(option) }}>
 						{option}
 					</li>
 				)}
-				onChange={(_, value) => {
-					if (!value) {
-						setSelectedValues([]);
-					}
-				}}
 			/>
 			{
-				selectedValues.map((value) => (
+				selectedValues?.map((value, index) => (
 					<SearchTab
 						label={value}
-						onClick={() => handleSelect(value)}
-						key={value} />
+						onClick={() => removeSelectedValue(value)}
+						key={index} />
 				))
 			}
 		</Stack >

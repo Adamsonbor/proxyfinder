@@ -1,18 +1,20 @@
 import { useTheme } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import ProtocolTab from "../ProtocolTab/ProtocolTab";
-import { Country, Proxy } from "../../utils/api/api";
+import { Country, ProxyRow } from "../../types";
 
 interface Props {
 	className?: string;
-	proxies?: Proxy[];
+	proxies?: ProxyRow[];
 	countries?: Country[];
+	sx?: object;
 }
 
 export default function InfiniteTable({
 	className = '',
 	proxies = [],
 	countries = [],
+	sx = {},
 }: Props) {
 	const theme = useTheme();
 
@@ -20,17 +22,17 @@ export default function InfiniteTable({
 		{ field: 'Ip', headerName: 'IP', minWidth: 100, flex: 1 },
 		{ field: 'Port', headerName: 'PORT', minWidth: 100, flex: 1 },
 		{
-			field: 'CountryId',
+			field: 'CountryName',
 			headerName: 'COUNTRY',
 			minWidth: 150,
 			flex: 1,
 			renderCell: (params: any) => (
 				<>
-				<span 
-				style={{marginRight: "5px"}}
-				className={`fi fi-${getCountryCode(countries, params.row.CountryId).toLowerCase()}`}>
-				</span>
-					{getCountryName(countries, params.row.CountryId)}
+					<span
+						style={{ marginRight: "5px" }}
+						className={`fi fi-${params.row.CountryCode.toLowerCase()}`}>
+					</span>
+					{params.row.CountryName}
 				</>
 			),
 		},
@@ -61,29 +63,19 @@ export default function InfiniteTable({
 		},
 		{ field: 'UpdatedAt', headerName: 'UPDATED', minWidth: 150, flex: 1 },
 		{
-			field: 'StatusId',
+			field: 'Status',
 			headerName: 'AVAILABLE',
 			minWidth: 150,
 			flex: 1,
 			renderCell: (params: any) => (
 				<>
-					{params.row.StatusId == 2 ?
-						<ProtocolTab
-							label="Available"
-							sx={{
-								backgroundColor: theme.palette.background.green,
-								color: theme.palette.text.green,
-							}}
-						/>
-						:
-						<ProtocolTab
-							label="Unavailable"
-							sx={{
-								backgroundColor: theme.palette.background.red,
-								color: theme.palette.text.red,
-							}}
-						/>
-					}
+					<ProtocolTab
+						label={params.row.Status}
+						sx={{
+							backgroundColor: availableBgColor(params.row.Status),
+							color: availableTextColor(params.row.Status),
+						}}
+					/>
 				</>
 			)
 		},
@@ -95,25 +87,46 @@ export default function InfiniteTable({
 		<DataGrid
 			rows={proxies.map((proxy, index) => ({ ...proxy, id: index }))}
 			columns={columns}
-			hideFooter
 			autoHeight
-			hideFooterPagination
-			hideFooterSelectedRowCount
+			hideFooter
 			className={className}
 			sx={{
+				...sx,
 				border: "none",
 				fontSize: '14px',
+				color: theme.palette.textBlack,
 				'& .MuiDataGrid-columnHeaders': {
-					color: theme.palette.text.secondary,
+					color: theme.palette.textGray,
+				},
+				'& .MuiDataGrid-topContainer::after': {
+					display: "none",
 				},
 				'& .MuiDataGrid-columnHeader:focus': {
 					outline: "none",
 					border: "none",
 				},
+				'& [role="row"]': {
+					backgroundColor: 'transparent !important',
+				},
+				'& [role="rowgroup"]': {
+					height: "100%",
+					overflowY: "scroll",
+				},
+				'& .MuiDataGrid-virtualScrollerContent': {
+					height: "calc(100vh - 120px) !important",
+					// {
+						// xs: "calc(100vh - 120px) !important",
+						// sm: "calc(100vh - 120px) !important",
+						// md: "calc(100vh - 120px) !important",
+						// lg: "calc(100vh - 120px) !important",
+						// xl: "calc(100vh - 120px) !important",
+					// }
+				},
 				'& .MuiDataGrid-cell': {
 					border: "none",
 					outline: "none",
 					fontSize: theme.typography.fontSize,
+					borderTop: "1px solid " + theme.palette.stroke,
 				},
 				'& .MuiDataGrid-cell:focus': {
 					outline: "none",
@@ -123,6 +136,28 @@ export default function InfiniteTable({
 			disableColumnMenu
 		/>
 	);
+
+	function availableBgColor(name: string): string {
+		switch (name) {
+			case "Available":
+				return theme.palette.greenTabAvailable;
+			case "Unavailable":
+				return theme.palette.redTabUnavailable;
+			default:
+				return theme.palette.redTabUnavailable;
+		}
+	}
+
+	function availableTextColor(name: string): string {
+		switch (name) {
+			case "Available":
+				return theme.palette.greenTextAvailable;
+			case "Unavailable":
+				return theme.palette.redTextUnavailable;
+			default:
+				return theme.palette.redTextUnavailable;
+		}
+	}
 
 	// function getBackgroundColor(protocol: string) {
 	// 	switch (protocol) {
@@ -152,12 +187,4 @@ export default function InfiniteTable({
 	// 			return theme.palette.blue;
 	// 	}
 	// }
-
-	function getCountryCode(countries: Country[], countryId: number) {
-		return countries.find((country: Country) => country.Id == countryId)?.Code || "Unknown"
-	}
-
-	function getCountryName(countries: Country[], countryId: number) {
-		return countries.find((country: Country) => country.Id == countryId)?.Name || "Unknown"
-	}
 }

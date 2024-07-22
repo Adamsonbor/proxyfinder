@@ -1,7 +1,13 @@
 import { useTheme } from '@mui/material/styles';
 import Switch, { SwitchProps } from '@mui/material/Switch';
 
-export default function ThemeSwitch(props: SwitchProps) {
+interface Props extends SwitchProps {
+}
+
+export default function ThemeSwitch({
+	sx = {},
+	...props
+}: Props) {
 	const theme = useTheme();
 
 	return (
@@ -9,6 +15,7 @@ export default function ThemeSwitch(props: SwitchProps) {
 			focusVisibleClassName=".Mui-focusVisible"
 			disableRipple
 			sx={{
+				...sx,
 				width: 42,
 				height: 26,
 				padding: 0,

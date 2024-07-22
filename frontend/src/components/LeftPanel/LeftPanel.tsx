@@ -1,54 +1,70 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Card from "../Card/Card";
-import { useTheme } from "@mui/material";
 import SearchMultipleAutocomplete from "../SearchMultipleAutocomplete/SearchMultipleAutocomplete";
 import CheckboxForm from "../CheckboxForm/CheckboxForm";
 import LinkButton from "../LinkButton/LinkButton";
 import RadioButtonGroup from "../RadioButtonGroup/RadioButtonGroup";
+import { Country, ProxyRow } from "../../types";
+import { darkTheme, lightTheme } from "../../theme";
+import ThemeSwitch from "../ThemeSwitch/ThemeSwitch";
+import { Theme } from "@mui/material/styles";
 
 interface Props {
 	className?: string
 	sx?: object
+	countries?: Country[]
+	proxies?: ProxyRow[]
+	theme?: Theme
+	setTheme?: (theme: Theme) => void
+	setProxies?: (proxies: ProxyRow[]) => void
 }
 
-const values = [
-	'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan',
-]
+interface ProtocolState {
+	label: string
+	checked: boolean
+}
 
-const protocols = [
+const protocols: ProtocolState[] = [
 	{ label: "HTTP", checked: true },
-	{ label: "HTTPS", checked: false },
-	{ label: "SOCKS4", checked: false },
-	{ label: "SOCKS5", checked: false },
+	{ label: "HTTPS", checked: true },
+	{ label: "SOCKS4", checked: true },
+	{ label: "SOCKS5", checked: true },
 ]
 
-const available = [
+const availableStatuses = [
 	"All",
 	"Available",
 	"Unavailable",
 ]
 
-export default function LeftPanel(props: Props) {
-	const theme = useTheme()
-	const [selectedValues, setSelectedValues] = useState<string[]>([]);
-	const [protocolStates, setProtocolStates] = useState(protocols);
+export default function LeftPanel({
+	className = "",
+	sx = {},
+	proxies = [],
+	setProxies = () => { },
+	countries = [],
+	theme = lightTheme,
+	setTheme = () => { },
+}: Props) {
 
-	function protocolHandler(label: string) {
-		const newProtocolStates = protocolStates.map((protocol) => {
-			if (protocol.label === label) {
-				return { ...protocol, checked: !protocol.checked };
-			}
-			return protocol;
-		});
-		setProtocolStates(newProtocolStates);
-	}
+	const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+	const [protocolStates, setProtocolStates] = useState<ProtocolState[]>(protocols);
+	const [selectedStatus, setSelectedStatus] = useState<string>(availableStatuses[0]);
 
+	const toggleTheme = () => {
+		setTheme(theme === lightTheme ? darkTheme : lightTheme);
+	};
+
+
+	useEffect(() => {
+		setProxies(filterProxies(proxies));
+	}, [selectedCountries, protocolStates, selectedStatus]);
 
 	return (
 		<div
-			className={props.className}
+			className={className}
 			style={{
-				...props.sx,
+				...sx,
 				display: 'flex',
 				flexDirection: 'column',
 				gap: '10px',
@@ -61,20 +77,20 @@ export default function LeftPanel(props: Props) {
 					<div
 						className="d-flex flex-column"
 						style={{
-							...props.sx,
+							...sx,
 							height: '100%',
 						}}>
 						<SearchMultipleAutocomplete
-							values={values}
+							values={countries?.map((country) => country.Name)}
 							label="Country or Region"
-							selectedValues={selectedValues}
-							setSelectedValues={setSelectedValues}
+							selectedValues={selectedCountries}
+							setSelectedValues={setSelectedCountries}
 							sx={{
 								marginTop: "16px",
-								width: "170px"
+								// width: "170px"
 							}} />
 						<button
-							onClick={() => setSelectedValues([])}
+							onClick={() => setSelectedCountries([])}
 							style={{
 								color: theme.palette.blueFilterTextIcon,
 								background: 'transparent',
@@ -117,12 +133,58 @@ export default function LeftPanel(props: Props) {
 				renderContent={
 					<div style={{}}>
 						<RadioButtonGroup
-							values={available}
-							defaultValue={available[0]}
-							setValue={() => { }}
+							values={availableStatuses}
+							defaultValue={availableStatuses[0]}
+							setValue={setSelectedStatus}
 						/>
 					</div>
 				} />
+			<div style={{ marginTop: 'auto', marginBottom: '40px' }}>
+				<div
+					style={{
+						display: 'flex',
+						alignItems: 'center',
+						gap: '10px',
+						marginBottom: '21px',
+					}}>
+					<span style={{ color: theme.palette.textGray }}>Theme</span>
+					<ThemeSwitch onChange={toggleTheme} />
+				</div>
+				<a
+					style={{
+						color: theme.palette.textGray,
+					}}
+					href="https://github.com/Adamsonbor">Project developer</a>
+			</div>
 		</div >
 	);
+
+	function filterProxies(proxies: ProxyRow[]): ProxyRow[] {
+		let out = []
+
+		for (const proxy of proxies) {
+			for (const protocol of protocolStates) {
+				if (protocol.checked && proxy.Protocol.toUpperCase() === protocol.label) {
+					if (selectedStatus === "All" || proxy.Status === selectedStatus) {
+						if (selectedCountries.length === 0 || selectedCountries.includes(proxy.CountryName)) {
+							out.push(proxy)
+						}
+					}
+				}
+			}
+		}
+
+		return out
+	}
+
+	function protocolHandler(label: string) {
+		const newProtocolStates = protocolStates.map((protocol) => {
+			if (protocol.label === label) {
+				return { ...protocol, checked: !protocol.checked };
+			}
+			return protocol;
+		});
+
+		setProtocolStates(newProtocolStates);
+	}
 }

@@ -6,16 +6,21 @@ import { useTheme } from '@mui/material';
 
 interface Props {
 	values: string[]
-	defaultValue: string
-	setValue: (value: string) => void
+	defaultValue?: string
+	setValue?: any
 	sx?: object
 }
 
-export default function RadioButtonGroup(props: Props) {
+export default function RadioButtonGroup({
+	values,
+	defaultValue = values[0],
+	setValue = () => { },
+	sx = {},
+}: Props) {
 	const theme = useTheme();
 
 	return (
-		<FormControl sx={props.sx}>
+		<FormControl sx={sx}>
 			<RadioGroup
 				sx={{
 					'&& .MuiSvgIcon-root': {
@@ -28,14 +33,14 @@ export default function RadioButtonGroup(props: Props) {
 					marginTop: '16px',
 				}}
 				aria-labelledby="demo-radio-buttons-group-label"
-				defaultValue={props.defaultValue}
+				defaultValue={defaultValue}
 				name="radio-buttons-group"
 			>
 				{
-					props.values.map((value, index) => (
+					values.map((value, index) => (
 						<FormControlLabel
 							sx={{
-								color: theme.palette.text.black,
+								color: theme.palette.textBlack,
 								'&&.MuiFormControlLabel-root': {
 									margin: 0,
 								},
@@ -62,7 +67,7 @@ export default function RadioButtonGroup(props: Props) {
 									marginRight: '10px',
 								}} />}
 							label={value}
-							onClick={() => props.setValue(value)}
+							onClick={() => setValue(value)}
 						/>
 					))
 				}
