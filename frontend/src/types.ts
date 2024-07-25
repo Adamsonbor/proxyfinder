@@ -2,31 +2,31 @@ export type StatusId = number
 export type CountryId = number
 
 export type Proxy = {
-	Ip: string
-	Port: string
-	CountryId: CountryId
-	StatusId: StatusId
-	Protocol: string
-	ResponseTime: number
-	CreatedAt: string
-	UpdatedAt: string
+	ip: string
+	port: string
+	country_id: CountryId
+	status_id: StatusId
+	protocol: string
+	response_time: number
+	created_at: string
+	updated_at: string
 }
 
 export type Country = {
-	Id: CountryId
-	Name: string
-	Code: string
+	id: CountryId
+	name: string
+	code: string
 }
 
 export type Status = {
-	Id: StatusId
-	Name: string
+	id: StatusId
+	name: string
 }
 
 export type ProxyRow = Proxy & {
-	CountryName: string
-	CountryCode: string
-	Status: string
-	CreatedAtFormatted: string
-	UpdatedAtFormatted: string
+	country_name: string
+	country_code: string
+	status: string
+	created_at_formatted: string
+	updated_at_formatted: string
 }

@@ -42,7 +42,7 @@ func (s *Scheduler) Run() {
 
 	ticker := time.NewTicker(s.cfg.Scheduler.Interval)
 
-	s.Refresh(context.Background())
+	// s.Refresh(context.Background())
 
 	select {
 	case <-s.stopChan:

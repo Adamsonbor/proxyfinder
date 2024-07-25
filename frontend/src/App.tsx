@@ -95,11 +95,11 @@ export default function App() {
 	): ProxyRow {
 		return {
 			...proxy,
-			Status: statuses.find((status) => status.Id === proxy.StatusId)?.Name || "Unknown",
-			CountryName: countries.find((country) => country.Id === proxy.CountryId)?.Name || "Unknown",
-			CountryCode: countries.find((country) => country.Id === proxy.CountryId)?.Code || "Unknown",
-			CreatedAtFormatted: new Date(proxy.CreatedAt).toLocaleString(),
-			UpdatedAtFormatted: new Date(proxy.UpdatedAt).toLocaleString(),
+			status: statuses.find((status) => status.id === proxy.status_id)?.name || "Unknown",
+			country_name: countries.find((country) => country.id === proxy.country_id)?.name || "Unknown",
+			country_code: countries.find((country) => country.id === proxy.country_id)?.code || "Unknown",
+			created_at_formatted: new Date(proxy.created_at).toLocaleString(),
+			updated_at_formatted: new Date(proxy.updated_at).toLocaleString(),
 		}
 	}
 }

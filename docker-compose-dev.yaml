@@ -1,0 +1,57 @@
+services:
+  api:
+    image: golang:1.22
+    container_name: proxyfinder-api-dev
+    command: sh -c " 
+      cd /app && \
+      CGO_ENABLED=1
+      go run cmd/api/main.go --config config/local.yaml --db storage/local.db"
+    volumes:
+      - ./server:/app
+      - $GOPATH/pkg/mod:/go/pkg/mod
+    ports:
+      - 8080:8080
+    depends_on:
+      - migrate
+
+  scheduler:
+    image: golang:1.22-alpine
+    container_name: proxyfinder-scheduler-dev
+    command: sh -c " 
+      cd /app && \
+      go run cmd/scheduler/main.go --config config/local.yaml --db storage/local.db"
+    volumes:
+      - ./server:/app
+      - $GOPATH/pkg/mod:/go/pkg/mod
+    depends_on:
+      - migrate
+  
+  migrate:
+    build: ./server/
+    container_name: proxyfinder-migrate-dev
+    command: bash -c "
+      cd /app && \
+      make goose-up && \
+      build/initdb up"
+    volumes:
+      - ./server:/app
+
+  frontend:
+    image: node:20-alpine
+    container_name: proxyfinder-frontend-dev
+    ports:
+      - 3000:3000
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    command: yarn dev
+
+  admin:
+    image: node:20-alpine
+    container_name: proxyfinder-admin-dev
+    ports:
+      - 5173:5173
+    working_dir: /app
+    volumes:
+      - ./admin:/app
+    command: yarn dev

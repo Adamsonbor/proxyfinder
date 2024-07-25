@@ -7,7 +7,9 @@ import (
 	"proxyfinder/internal/config"
 	"proxyfinder/internal/logger"
 	gormstorage "proxyfinder/internal/storage/gorm-storage"
+	sqlxstorage "proxyfinder/internal/storage/v2/sqlx-storage"
 
+	"github.com/jmoiron/sqlx"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -21,34 +23,31 @@ func main() {
 	// INIT logger
 	log := logger.New(cfg.Env)
 	log.Info("Initializing with env: " + cfg.Env)
-	
+
 	// INIT gorm sqlite
 	db, err := gorm.Open(sqlite.Open(cfg.Database.Path), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
-	
-	// INIT storage 
-	storage := gormstorage.New(db)
-	
-	// status := domain.Status{Name: "available"}
-	// if err := storage.Create(&status); err != nil {
-	// 	panic(err)
-	// }
 
-	// var statuses []domain.Status
-	// if err := storage.GetAll(&statuses); err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(statuses)
-	//
-	// var countries []domain.Country
-	// if err := storage.GetAll(&countries); err != nil {
-	// 	panic(err)
-	// }
-	// for _, v := range countries {
-	// 	fmt.Println(v.Code, v.Name)
-	// }
-	router := chirouter.New(log, storage)
-	http.ListenAndServe(":8080", router.Router)
+	// INIT storage
+	storage := gormstorage.New(db)
+
+	// INIT sqlxdb
+	sqlxdb, err := sqlx.Connect("sqlite3", cfg.Database.Path)
+	if err != nil {
+		panic(err)
+	}
+	sqlxdb.SetMaxIdleConns(10)
+	sqlxdb.SetMaxOpenConns(100)
+	sqlxdb.SetConnMaxLifetime(5)
+
+	// INIT sqlx storage
+
+	sqlxStorage := sqlxstorage.New(sqlxdb)
+
+	// INIT router
+	mux := chirouter.New(log, storage, sqlxStorage)
+
+	http.ListenAndServe(":8080", mux)
 }
