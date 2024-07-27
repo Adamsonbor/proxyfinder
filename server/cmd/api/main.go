@@ -6,7 +6,8 @@ import (
 	chirouter "proxyfinder/internal/api/chi-router"
 	"proxyfinder/internal/config"
 	"proxyfinder/internal/logger"
-	gormstorage "proxyfinder/internal/storage/gorm-storage"
+	gormstoragev1 "proxyfinder/internal/storage/gorm-storage"
+	gormstoragev2 "proxyfinder/internal/storage/v2/gorm-sotrage"
 	sqlxstorage "proxyfinder/internal/storage/v2/sqlx-storage"
 
 	"github.com/jmoiron/sqlx"
@@ -31,7 +32,8 @@ func main() {
 	}
 
 	// INIT storage
-	storage := gormstorage.New(db)
+	storage := gormstoragev1.New(db)
+	storagev2 := gormstoragev2.New(db)
 
 	// INIT sqlxdb
 	sqlxdb, err := sqlx.Connect("sqlite3", cfg.Database.Path)
@@ -47,7 +49,7 @@ func main() {
 	sqlxStorage := sqlxstorage.New(sqlxdb)
 
 	// INIT router
-	mux := chirouter.New(log, storage, sqlxStorage)
+	mux := chirouter.New(log, storage, storagev2, sqlxStorage)
 
 	http.ListenAndServe(":8080", mux)
 }

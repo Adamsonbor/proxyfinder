@@ -4,7 +4,7 @@ DB_FILE = ./server/storage/local.db
 SERVER_DIR = ./server
 
 # docker
-up:
+up: build
 	docker-compose up
 
 down:
@@ -21,6 +21,9 @@ up-build: build
 
 down:
 	docker-compose down
+
+up-api:
+	docker-compose -f docker-compose-dev.yaml up api
 
 build: server-build frontend-build admin-build
 

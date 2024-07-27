@@ -20,6 +20,9 @@ $(BIN_DIR)/%: $(SRC_DIR)/%/main.go
 $(BIN_DIR):
 	mkdir -p $@
 
+up-api-dev:
+	air -c .air-api.toml
+
 clean:
 	rm -rf $(BIN_DIR)
 

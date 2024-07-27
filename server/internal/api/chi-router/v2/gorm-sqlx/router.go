@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"proxyfinder/internal/api"
 	"proxyfinder/internal/domain"
-	gormstorage "proxyfinder/internal/storage/gorm-storage"
+	gormstorage "proxyfinder/internal/storage/v2/gorm-sotrage"
 	sqlxstorage "proxyfinder/internal/storage/v2/sqlx-storage"
 	"reflect"
 	"strconv"
@@ -55,7 +55,14 @@ func New(log *slog.Logger, storage *gormstorage.Storage, proxyStorage *sqlxstora
 	r.Mount("/status", crud)
 	r.Mount("/country", crud)
 	r.Route("/proxy", func(r chi.Router) {
+		r.Route("/{id}", func(r chi.Router) {
+			r.Use(idPermissionMiddleware)
+			r.Get("/", s.Get)
+			r.Put("/", s.Update)
+			r.Delete("/", s.Delete)
+		})
 		r.Get("/", s.GetAllProxy)
+		r.Post("/", s.Create)
 	})
 
 	return &s
@@ -68,7 +75,26 @@ func (s *Server) GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := s.storage.GetAll(insts)
+	page, perPage := 1, 10
+	
+	query := r.URL.Query()
+	var err error
+	if query.Get("page") != "" {
+		page, err = strconv.Atoi(query.Get("page"))
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+	}
+	if query.Get("perPage") != "" {
+		perPage, err = strconv.Atoi(query.Get("perPage"))
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+	}
+
+	err = s.storage.GetAllFilter(insts, page, perPage)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -100,6 +126,7 @@ func (s *Server) Get(w http.ResponseWriter, r *http.Request) {
 
 	err := s.storage.Get(inst, userId)
 	if err != nil {
+		log.Error("get", slog.String("err", err.Error()))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
