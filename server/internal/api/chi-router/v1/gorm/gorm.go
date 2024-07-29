@@ -1,4 +1,4 @@
-package chirouter
+package router
 
 import (
 	"context"
@@ -31,6 +31,12 @@ func New(log *slog.Logger, storage *gormstorage.Storage) *Server {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{"https://*", "http://*"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
+		ExposedHeaders: []string{"Content-Range"},
+		MaxAge:         300, // Maximum value not ignored by any of major browsers
+	}))
 
 	crud := r.Route("/", func(r chi.Router) {
 		r.Route("/{id}", func(r chi.Router) {
@@ -43,17 +49,9 @@ func New(log *slog.Logger, storage *gormstorage.Storage) *Server {
 		r.Post("/", s.Create)
 	})
 
-	r.Route("/api/v1", func(r chi.Router) {
-		r.Use(cors.Handler(cors.Options{
-			AllowedOrigins:   []string{"https://*", "http://*"},
-			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
-			MaxAge:           300, // Maximum value not ignored by any of major browsers	
-		}))
-		r.Mount("/proxy", crud)
-		r.Mount("/status", crud)
-		r.Mount("/country", crud)
-		r.Mount("/protocol", crud)
-	})
+	r.Mount("/proxy", crud)
+	r.Mount("/status", crud)
+	r.Mount("/country", crud)
 
 	return &s
 }

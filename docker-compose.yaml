@@ -1,5 +1,5 @@
 services:
-  proxyfinder-api:
+  api:
     build: ./server/
     container_name: proxyfinder-api
     command: bash -c " 
@@ -14,7 +14,7 @@ services:
     ports:
       - 8080:8080
     depends_on:
-      - proxyfinder-migrate
+      - migrate
 
   proxyfinder-scheduler:
     build: ./server/
@@ -29,9 +29,9 @@ services:
       - ./server/migrations:/app/migrations/
       - ./server/Makefile:/app/Makefile
     depends_on:
-      - proxyfinder-migrate
+      - migrate
   
-  proxyfinder-migrate:
+  migrate:
     build: ./server/
     container_name: proxyfinder-migrate
     command: bash -c "
@@ -45,22 +45,13 @@ services:
       - ./server/migrations:/app/migrations/
       - ./server/Makefile:/app/Makefile
 
-  proxyfinder-frontend-prod:
+  frontend:
     image: nginx:1.26-alpine
-    container_name: proxyfinder-frontend-prod
+    container_name: proxyfinder-frontend
     ports:
       - 3000:3000
     working_dir: /app
     volumes:
       - ./frontend/dist:/app/dist
-      - ./frontend/nginx.conf:/etc/nginx/nginx.conf
-    
-  # proxyfinder-frontend-dev:
-  #   image: node:20-alpine
-  #   container_name: proxyfinder-frontend-dev
-  #   ports:
-  #     - 3000:3000
-  #   working_dir: /app
-  #   volumes:
-  #     - ./frontend:/app
-  #   command: yarn dev
+      - ./admin/dist:/app/admin/dist
+      - ./nginx.conf:/etc/nginx/nginx.conf

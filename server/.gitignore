@@ -2,5 +2,5 @@
 .env
 *.log
 *.txt
-# *.db
-# build
+*.db
+build

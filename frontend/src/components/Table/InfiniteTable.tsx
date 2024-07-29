@@ -19,10 +19,10 @@ export default function InfiniteTable({
 	const theme = useTheme();
 
 	const columns = [
-		{ field: 'Ip', headerName: 'IP', minWidth: 100, flex: 1 },
-		{ field: 'Port', headerName: 'PORT', minWidth: 100, flex: 1 },
+		{ field: 'ip', headerName: 'IP', minWidth: 100, flex: 1 },
+		{ field: 'port', headerName: 'PORT', minWidth: 100, flex: 1 },
 		{
-			field: 'CountryName',
+			field: 'country_name',
 			headerName: 'COUNTRY',
 			minWidth: 150,
 			flex: 1,
@@ -30,20 +30,20 @@ export default function InfiniteTable({
 				<>
 					<span
 						style={{ marginRight: "5px" }}
-						className={`fi fi-${params.row.CountryCode.toLowerCase()}`}>
+						className={`fi fi-${params.row.country_code.toLowerCase()}`}>
 					</span>
-					{params.row.CountryName}
+					{params.row.country_name}
 				</>
 			),
 		},
 		{
-			field: 'Protocol',
+			field: 'protocol',
 			headerName: 'PROTOCOL',
 			minWidth: 100,
 			flex: 1,
 			renderCell: (params: any) => (
 				<ProtocolTab
-					label={params.row.Protocol}
+					label={params.row.protocol}
 					sx={{
 						backgroundColor: theme.palette.grayTabProtocol,
 						color: theme.palette.grayTextProtocol,
@@ -52,28 +52,28 @@ export default function InfiniteTable({
 			),
 		},
 		{
-			field: 'ResponseTime',
+			field: 'response_time',
 			headerName: 'RESPONSE',
 			minWidth: 100, flex: 1,
 			renderCell: (params: any) => (
 				<>
-					{params.row.ResponseTime}ms
+					{params.row.response_time}ms
 				</>
 			)
 		},
-		{ field: 'UpdatedAt', headerName: 'UPDATED', minWidth: 150, flex: 1 },
+		{ field: 'updated_at', headerName: 'UPDATED', minWidth: 150, flex: 1 },
 		{
-			field: 'Status',
+			field: 'status',
 			headerName: 'AVAILABLE',
 			minWidth: 150,
 			flex: 1,
 			renderCell: (params: any) => (
 				<>
 					<ProtocolTab
-						label={params.row.Status}
+						label={params.row.status}
 						sx={{
-							backgroundColor: availableBgColor(params.row.Status),
-							color: availableTextColor(params.row.Status),
+							backgroundColor: availableBgColor(params.row.status),
+							color: availableTextColor(params.row.status),
 						}}
 					/>
 				</>

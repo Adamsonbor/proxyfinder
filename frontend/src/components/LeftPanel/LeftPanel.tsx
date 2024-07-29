@@ -81,7 +81,7 @@ export default function LeftPanel({
 							height: '100%',
 						}}>
 						<SearchMultipleAutocomplete
-							values={countries?.map((country) => country.Name)}
+							values={countries?.map((country) => country.name)}
 							label="Country or Region"
 							selectedValues={selectedCountries}
 							setSelectedValues={setSelectedCountries}
@@ -164,9 +164,9 @@ export default function LeftPanel({
 
 		for (const proxy of proxies) {
 			for (const protocol of protocolStates) {
-				if (protocol.checked && proxy.Protocol.toUpperCase() === protocol.label) {
-					if (selectedStatus === "All" || proxy.Status === selectedStatus) {
-						if (selectedCountries.length === 0 || selectedCountries.includes(proxy.CountryName)) {
+				if (protocol.checked && proxy.protocol.toUpperCase() === protocol.label) {
+					if (selectedStatus === "All" || proxy.status === selectedStatus) {
+						if (selectedCountries.length === 0 || selectedCountries.includes(proxy.country_name)) {
 							out.push(proxy)
 						}
 					}
