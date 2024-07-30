@@ -8,7 +8,6 @@ MIGRATIONS_DIR=./migrations/goose
 GOOSE_PATH=$(BIN_DIR)/goose
 GOOSE_COMMAND=$(GOOSE_PATH) -dir $(MIGRATIONS_DIR) sqlite3 $(DB_PATH)
 
-
 build: $(BIN_DIR) $(BIN)
 
 $(BIN_DIR)/%: $(SRC_DIR)/%/main.go

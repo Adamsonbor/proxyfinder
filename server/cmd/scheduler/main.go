@@ -4,7 +4,7 @@ import (
 	"fmt"
 	httpchecker "proxyfinder/internal/checker/http-checker"
 	defaultScheduler "proxyfinder/internal/scheduler/default-scheduler"
-	"proxyfinder/internal/storage/sqlite-storage"
+	"proxyfinder/internal/storage/sqlx-storage"
 
 	"proxyfinder/internal/config"
 	"proxyfinder/internal/logger"
@@ -31,7 +31,7 @@ func main() {
 	checker := httpchecker.New(log)
 
 	// INIT ProxyStorage
-	proxyStorage := sqlite.NewProxy(db)
+	proxyStorage := sqlxstorage.NewProxy(db)
 
 	// INIT scheduler
 	scheduler := defaultScheduler.NewScheduler(cfg, log, proxyStorage, checker)

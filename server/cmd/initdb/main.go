@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"proxyfinder/internal/collector/geonode"
+	"proxyfinder/internal/config"
 	"proxyfinder/internal/domain"
 	"proxyfinder/internal/logger"
 
@@ -18,11 +19,64 @@ const (
 	dirPath = "./storage/init/geonode"
 )
 
-var (
-	verbose = true
-)
+type Mute struct{}
+
+func (m Mute) Write(p []byte) (n int, err error) {
+	return 0, nil
+}
 
 // TODO: delete this shit code and write normal one
+func main() {
+	cfg := config.MustLoadConfig()
+	if cfg.Database.Path == "" {
+		panic("Database path is empty")
+	}
+
+	db, err := sqlx.Open("sqlite3", cfg.Database.Path)
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Ping()
+	if err != nil {
+		panic(err)
+	}
+
+	tx, err := db.Beginx()
+	if err != nil {
+		panic(err)
+	}
+
+	log := slog.New(slog.NewTextHandler(Mute{}, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
+	args := os.Args
+	for _, arg := range args {
+		if arg == "-v" || arg == "--verbose" {
+			log = logger.New(cfg.Env)
+		}
+	}
+
+	switch args[len(args)-1] {
+	case "up":
+		err = upFillProxyTable(context.Background(), tx, log)
+	case "down":
+		err = downFillProxyTable(context.Background(), tx, log)
+	default:
+		fmt.Println("Usage: ./initdb [flags] [up|down]")
+		os.Exit(1)
+	}
+	if err != nil {
+		tx.Rollback()
+		panic(err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Done")
+}
+
 func upFillProxyTable(ctx context.Context, tx *sqlx.Tx, log *slog.Logger) error {
 	// This code is executed when the migration is applied.
 
@@ -146,63 +200,6 @@ func downFillProxyTable(ctx context.Context, tx *sqlx.Tx, log *slog.Logger) erro
 	}
 
 	return nil
-}
-
-type Mute struct{}
-
-func (m Mute) Write(p []byte) (n int, err error) {
-	return 0, nil
-}
-
-func main() {
-	db, err := sqlx.Open("sqlite3", "storage/local.db")
-	if err != nil {
-		panic(err)
-	}
-
-	err = db.Ping()
-	if err != nil {
-		panic(err)
-	}
-
-	tx, err := db.Beginx()
-	if err != nil {
-		panic(err)
-	}
-
-	args := os.Args
-	if len(args) < 2 {
-		fmt.Println("Usage: ./initdb [up|down]")
-		os.Exit(1)
-	}
-
-	log := slog.New(slog.NewTextHandler(Mute{}, &slog.HandlerOptions{Level: slog.LevelInfo}))
-
-	if len(args) > 2 {
-		if args[2] == "--verbose" {
-			log = logger.New("debug")
-		}
-	}
-
-	switch args[1] {
-	case "up":
-		err = upFillProxyTable(context.Background(), tx, log)
-	case "down":
-		err = downFillProxyTable(context.Background(), tx, log)
-	default:
-		fmt.Println("Usage: ./initdb [up|down]")
-		os.Exit(1)
-	}
-	if err != nil {
-		tx.Rollback()
-		panic(err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Done")
 }
 
 func SaveProxies(ctx context.Context, log *slog.Logger, tx *sqlx.Tx, proxies []domain.Proxy) error {

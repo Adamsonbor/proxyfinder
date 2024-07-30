@@ -7,7 +7,7 @@ import (
 	"proxyfinder/internal/collector/geonode"
 	"proxyfinder/internal/config"
 	"proxyfinder/internal/logger"
-	"proxyfinder/internal/storage/sqlite-storage"
+	"proxyfinder/internal/storage/sqlx-storage"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
@@ -23,8 +23,8 @@ func main() {
 
 	log := logger.New(cfg.Env)
 
-	countryStorage := sqlite.NewCountry(db)
-	proxyStorage := sqlite.NewProxy(db)
+	countryStorage := sqlxstorage.NewCountry(db)
+	proxyStorage := sqlxstorage.NewProxy(db)
 
 	collector := geonode.New(log, proxyStorage, countryStorage)
 	pager := collector.NewPageScheduler()

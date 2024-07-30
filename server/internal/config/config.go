@@ -30,7 +30,9 @@ type Database struct {
 }
 
 type Scheduler struct {
-	Interval time.Duration `yaml:"interval"`
+	StartImmediately bool          `yaml:"start_immediately"`
+	Timeout          time.Duration `yaml:"timeout"`
+	Interval         time.Duration `yaml:"interval"`
 }
 
 func MustLoadConfig() *Config {
@@ -77,12 +79,11 @@ func ParseFlags() map[string]string {
 }
 
 func GetDatabasePath(flags map[string]string) string {
-	databasePath, ok := flags["DATABASE_PATH"]
-	if ok {
-		return databasePath
+	if flags["DATABASE_PATH"] != "" {
+		return flags["DATABASE_PATH"]
 	}
 
-	databasePath = os.Getenv("DATABASE_PATH")
+	databasePath := os.Getenv("DATABASE_PATH")
 	if databasePath != "" {
 		return databasePath
 	}
@@ -91,12 +92,11 @@ func GetDatabasePath(flags map[string]string) string {
 }
 
 func GetConfigPath(flags map[string]string) string {
-	configPath, ok := flags["CONFIG_PATH"]
-	if ok {
-		return configPath
+	if flags["CONFIG_PATH"] != "" {
+		return flags["CONFIG_PATH"]
 	}
 
-	configPath = os.Getenv("CONFIG_PATH")
+	configPath := os.Getenv("CONFIG_PATH")
 	if configPath != "" {
 		return configPath
 	}

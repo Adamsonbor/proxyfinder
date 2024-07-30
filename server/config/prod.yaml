@@ -1,4 +1,4 @@
-env: "debug"
+env: "prod"
 
 collector:
   timeout: 5s
@@ -7,8 +7,9 @@ checker:
   timeout: 5s
 
 database:
-  path: "./storage/local.db"
   timeout: 5s
 
 scheduler:
+  start_immediately: true
+  timeout: 6s
   interval: 1h

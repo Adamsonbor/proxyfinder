@@ -7,8 +7,9 @@ checker:
   timeout: 10s
 
 database:
-  path: "./storage/local.db"
   timeout: 10s
 
 scheduler:
+  start_immediately: false
+  timeout: 10s
   interval: 1h
