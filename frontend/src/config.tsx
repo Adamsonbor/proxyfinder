@@ -8,7 +8,7 @@ export const ConfigContext = React.createContext<Config>({} as Config);
 
 export function ConfigProvider(props: any) {
 	const defaultConfig: Config = {
-		apiUrl: "http://localhost:8080/api/v1"
+		apiUrl: import.meta.env.VITE_API_URL + "/api/v1",
 	}
 
 	return (

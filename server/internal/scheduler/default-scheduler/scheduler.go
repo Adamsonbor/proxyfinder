@@ -37,7 +37,7 @@ func (s *Scheduler) Run() {
 	const op = "scheduler.Scheduler.Run"
 
 	log := s.log.With(slog.String("op", op))
-	log.Debug("Start scheduler")
+	log.Info("Start scheduler")
 
 	signal.Notify(s.stopChan, os.Interrupt)
 
@@ -64,7 +64,7 @@ func (s *Scheduler) Refresh(ctx context.Context) error {
 	const op = "Scheduler.Refresh"
 
 	log := s.log.With(slog.String("op", op))
-	log.Debug("Start refreshing...")
+	log.Info("Start refreshing...")
 
 	tx, err := s.proxyStorage.Begin()
 	if err != nil {
@@ -124,7 +124,7 @@ func (s *Scheduler) Refresh(ctx context.Context) error {
 
 	wg.Wait()
 
-	log.Debug("Committing changes...")
+	log.Info("Committing changes...")
 	err = tx.Commit()
 	if err != nil {
 		log.Error("Commit failed", slog.String("err", err.Error()))
@@ -132,7 +132,7 @@ func (s *Scheduler) Refresh(ctx context.Context) error {
 		return err
 	}
 
-	log.Debug("Refresh completed.")
+	log.Info("Refresh completed.")
 
 	return nil
 }

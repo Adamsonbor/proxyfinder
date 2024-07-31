@@ -13,31 +13,38 @@ BUILD_DIRS = ${SERVER_BUILD_DIR} ${FRONTEND_BUILD_DIR} ${ADMIN_BUILD_DIR}
 
 # docker
 up:
-	docker-compose up
+	docker-compose up -d
 
 down:
 	docker-compose down --remove-orphans
 
 up-dev:
-	docker-compose -f docker-compose-dev.yaml up
+	docker-compose -f docker-compose-dev.yaml up -d
 
 down-dev:
 	docker-compose -f docker-compose-dev.yaml down --remove-orphans
 
-up-build:
-	make -C ${SERVER_DIR} re
+up-build: re
 	docker-compose up --build
+
+build: ${BUILD_DIRS}
+
+clean:
+	sudo rm -rf ${BUILD_DIRS}
+
+re: clean build
 
 ${SERVER_BUILD_DIR}:
 	make -C ${SERVER_DIR} build
 
 ${FRONTEND_BUILD_DIR}:
-	@cd ${FRONTEND_DIR} && yarn && yarn build
+	@cd ${FRONTEND_DIR} && yarn && yarn build:prod
 
 ${ADMIN_BUILD_DIR}:
 	@cd ${ADMIN_DIR} && yarn && yarn build
 
-prod: ${BUILD_DIRS}
+
+prod: re
 	sudo rm -rf prod
 	mkdir -p \
 		prod/server\

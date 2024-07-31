@@ -14,12 +14,6 @@ import (
 )
 
 func main() {
-	// INIT database
-	db, err := sqlx.Open("sqlite3", "./storage/local.db")
-	if err != nil {
-		panic(err)
-	}
-
 	// INIT config
 	cfg := config.MustLoadConfig()
 
@@ -30,11 +24,21 @@ func main() {
 	// INIT checker
 	checker := httpchecker.New(log)
 
+	log.Info("Database path: " + cfg.Database.Path)
+	// INIT database
+	db, err := sqlx.Open("sqlite3", cfg.Database.Path)
+	if err != nil {
+		panic(err)
+	}
+	log.Info("Database connected")
+
 	// INIT ProxyStorage
 	proxyStorage := sqlxstorage.NewProxy(db)
+	log.Info("ProxyStorage connected")
 
 	// INIT scheduler
 	scheduler := defaultScheduler.NewScheduler(cfg, log, proxyStorage, checker)
+	log.Info("Scheduler connected")
 
 	// START
 	scheduler.Run()
