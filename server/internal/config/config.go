@@ -14,11 +14,12 @@ type Config struct {
 	Checker   Checker   `yaml:"checker"`
 	Scheduler Scheduler `yaml:"scheduler"`
 	Database  Database  `yaml:"database"`
-	Mail      Mail      `yaml:"mail"`
+	Email     Email     `yaml:"email"`
 }
 
-type Mail struct {
+type Email struct {
 	From    string        `yaml:"from" required:"true"`
+	Email   string        `yaml:"email" required:"true"`
 	Pass    string        `yaml:"pass" required:"true"`
 	Secure  bool          `yaml:"secure" default:"false"`
 	Addr    string        `yaml:"addr" required:"true"`
