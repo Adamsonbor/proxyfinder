@@ -1,3 +1,4 @@
+
 SERVER_DIR = ./server
 SERVER_BUILD_DIR = ${SERVER_DIR}/build
 SERVER_CONFIG_DIR = ${SERVER_DIR}/config
@@ -10,6 +11,17 @@ ADMIN_DIR = ./admin
 ADMIN_BUILD_DIR = ${ADMIN_DIR}/dist
 
 BUILD_DIRS = ${SERVER_BUILD_DIR} ${FRONTEND_BUILD_DIR} ${ADMIN_BUILD_DIR}
+
+PURPLE = \033[35m
+RED = \033[31m
+GREEN = \033[32m
+BLUE = \033[34m
+BOLD = \033[1m
+RESET = \033[0m
+
+define echo
+	@echo -e "${PURPLE}${BOLD}"$1"${RESET}"
+endef
 
 # docker
 up:
@@ -35,13 +47,19 @@ clean:
 re: clean build
 
 ${SERVER_BUILD_DIR}:
+	@${call echo, "building server..."}
 	make -C ${SERVER_DIR} build
+	@${call echo, "server built\n\n"}
 
 ${FRONTEND_BUILD_DIR}:
+	@${call echo, "building frontend..."}
 	@cd ${FRONTEND_DIR} && yarn && yarn build:prod
+	@${call echo, "frontend built\n\n"}
 
 ${ADMIN_BUILD_DIR}:
+	@${call echo, "building admin..."}
 	@cd ${ADMIN_DIR} && yarn && yarn build
+	@${call echo, "admin built\n\n"}
 
 
 prod: re

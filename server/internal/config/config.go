@@ -14,6 +14,16 @@ type Config struct {
 	Checker   Checker   `yaml:"checker"`
 	Scheduler Scheduler `yaml:"scheduler"`
 	Database  Database  `yaml:"database"`
+	Mail      Mail      `yaml:"mail"`
+}
+
+type Mail struct {
+	From    string        `yaml:"from" required:"true"`
+	Pass    string        `yaml:"pass" required:"true"`
+	Secure  bool          `yaml:"secure" default:"false"`
+	Addr    string        `yaml:"addr" required:"true"`
+	Port    int           `yaml:"port" default:"587"`
+	Timeout time.Duration `yaml:"timeout"`
 }
 
 type Collector struct {
@@ -25,8 +35,8 @@ type Checker struct {
 }
 
 type Database struct {
-	// yaml > flag > env > panic
-	Path    string        `yaml:"path" env:"DATABASE_PATH" required:"true"`
+	//  flag > yaml > panic
+	Path    string        `yaml:"path" required:"true"`
 	Timeout time.Duration `yaml:"timeout"`
 }
 
@@ -42,9 +52,8 @@ func MustLoadConfig() *Config {
 	configPath := GetConfigPath(flags)
 	config := MustReadConfigFile(configPath)
 
-	databasePath := GetDatabasePath(flags)
-	if databasePath != "" {
-		config.Database.Path = databasePath
+	if flags["DATABASE_PATH"] != "" {
+		config.Database.Path = flags["DATABASE_PATH"]
 	}
 
 	return config
@@ -77,14 +86,6 @@ func ParseFlags() map[string]string {
 		"DATABASE_PATH": databasePath,
 		"CONFIG_PATH":   configPath,
 	}
-}
-
-func GetDatabasePath(flags map[string]string) string {
-	if flags["DATABASE_PATH"] != "" {
-		return flags["DATABASE_PATH"]
-	}
-
-	return ""
 }
 
 func GetConfigPath(flags map[string]string) string {

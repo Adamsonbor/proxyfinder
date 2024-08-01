@@ -5,7 +5,7 @@ const proxyfinderDataProvider = simpleRestProvider(import.meta.env.VITE_API_SERV
 proxyfinderDataProvider.getList = async (resource: string, params: any) => {
 	const { page, perPage } = params.pagination;
 	const url = `
-		${import.meta.env.VITE_API_SERVER_URL}/${resource}?\
+		${import.meta.env.VITE_API_URL}/api/v2/${resource}?\
 		page=${page}&\
 		perPage=${perPage}`
 	return fetch(url)

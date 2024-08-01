@@ -9,7 +9,6 @@ services:
       - ./server/config:/app/config
       - ./server/storage:/app/storage
       - ./server/build:/app/build
-    env_file: ./.env
     ports:
       - 8080:8080
     depends_on:
@@ -26,7 +25,6 @@ services:
       - ./server/config:/app/config
       - ./server/storage:/app/storage
       - ./server/build:/app/build
-    env_file: ./.env
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -43,7 +41,6 @@ services:
       - ./server/build:/app/build
       - ./server/migrations:/app/migrations/
       - ./server/config:/app/config
-    env_file: ./.env
 
   frontend:
     image: nginx:1.26-alpine

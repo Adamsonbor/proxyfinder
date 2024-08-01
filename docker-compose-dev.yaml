@@ -6,12 +6,9 @@ services:
     environment:
       - CGO_ENABLED=1
     volumes:
-      - ./server/config:/app/config
-      - ./server/storage:/app/storage
-      - ./server/build:/app/build
+      - ./server:/app
       - $GOPATH/pkg/mod:/go/pkg/mod
       - $GOPATH/bin:/go/bin
-    env_file: ./.env
     ports:
       - 8080:8080
     depends_on:
@@ -26,7 +23,6 @@ services:
       - ./server:/app
       - $GOPATH/pkg/mod:/go/pkg/mod
       - $GOPATH/bin:/go/bin
-    env_file: ./.env
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -34,11 +30,10 @@ services:
   migrate:
     image: golang:1.22
     container_name: proxyfinder-migrate-dev
-    command: bash -c "
-      cd /app && \
-      go run cmd/goose/main.go --dir migrations/goose sqlite3 storage/local.db up && \
-      go run cmd/initdb/main.go --dir migrations/init/geonode --db storage/local.db up"
-    env_file: ./.env
+    # command: bash -c "
+    #   cd /app && \
+    #   go run cmd/goose/main.go --dir migrations/goose sqlite3 storage/local.db up && \
+    #   go run cmd/initdb/main.go --dir migrations/init/geonode --db storage/local.db up"
     volumes:
       - ./server:/app
       - $GOPATH/pkg/mod:/go/pkg/mod
@@ -48,7 +43,7 @@ services:
     image: node:20-alpine
     container_name: proxyfinder-frontend-dev
     ports:
-      - 3000:3000
+      - 80:80
     working_dir: /app
     volumes:
       - ./frontend:/app
@@ -58,7 +53,7 @@ services:
     image: node:20-alpine
     container_name: proxyfinder-admin-dev
     ports:
-      - 5173:5173
+      - 3000:3000
     working_dir: /app
     volumes:
       - ./admin:/app

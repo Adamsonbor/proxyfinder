@@ -1,4 +1,12 @@
 *.env
 *.tar*
+*.zip
+*.egg-info
+*.egg
+*.pyc
+*.cache
+*.log
+*.txt
+*.tmp
 
 prod
