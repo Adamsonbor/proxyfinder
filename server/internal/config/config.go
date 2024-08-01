@@ -25,7 +25,8 @@ type Checker struct {
 }
 
 type Database struct {
-	Path    string        `yaml:"path"`
+	// yaml > flag > env > panic
+	Path    string        `yaml:"path" env:"DATABASE_PATH" required:"true"`
 	Timeout time.Duration `yaml:"timeout"`
 }
 
@@ -81,11 +82,6 @@ func ParseFlags() map[string]string {
 func GetDatabasePath(flags map[string]string) string {
 	if flags["DATABASE_PATH"] != "" {
 		return flags["DATABASE_PATH"]
-	}
-
-	databasePath := os.Getenv("DATABASE_PATH")
-	if databasePath != "" {
-		return databasePath
 	}
 
 	return ""

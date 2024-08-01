@@ -1,15 +1,15 @@
 env: "local"
 
 collector:
-  timeout: 10s
+  timeout: 20s
 
 checker:
-  timeout: 10s
+  timeout: 5s
 
 database:
   timeout: 10s
 
 scheduler:
   start_immediately: false
-  timeout: 10s
+  timeout: 15s
   interval: 1h

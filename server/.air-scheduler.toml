@@ -1,0 +1,10 @@
+root = "."
+tmp_dir = "build"
+
+[build]
+	cmd="go build -o build/scheduler cmd/scheduler/main.go"
+	bin="build/scheduler"
+	args_bin = ["--config=config/local.yaml", "--db=storage/local.db"]
+	exclude_regex = [
+		"*.json"
+	]

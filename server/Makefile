@@ -22,6 +22,9 @@ $(BIN_DIR):
 up-api-dev:
 	air -c .air-api.toml
 
+up-scheduler-dev:
+	air -c .air-scheduler.toml
+
 clean:
 	rm -rf $(BIN_DIR)
 

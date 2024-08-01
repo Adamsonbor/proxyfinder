@@ -9,11 +9,8 @@ import (
 	"net/http"
 	"os"
 	"proxyfinder/internal/domain"
-	"proxyfinder/internal/storage"
 	"strconv"
 	"strings"
-
-	"github.com/jmoiron/sqlx"
 )
 
 var (
@@ -23,18 +20,14 @@ var (
 type Collector struct {
 	Url            string
 	log            *slog.Logger
-	proxyStorage   storage.ProxyStorage
-	countryStorage storage.CountryStorage
 }
 
-func New(log *slog.Logger, proxtStorage storage.ProxyStorage, countryStorage storage.CountryStorage) *Collector {
+func New(log *slog.Logger) *Collector {
 	log.Info("New Collector")
 
 	return &Collector{
 		Url:            "https://proxylist.geonode.com/api/proxy-list?limit=500&sort_by=lastChecked&sort_type=desc",
 		log:            log,
-		proxyStorage:   proxtStorage,
-		countryStorage: countryStorage,
 	}
 }
 
@@ -66,6 +59,8 @@ type ApiProxy struct {
 	ResponseTime       int
 }
 
+// TODO: delete this shit code and write normal one
+// Do request to geonode and save it to file by filename (filepath)
 func (c *Collector) Collect(ctx context.Context, url string, filename string) ([]domain.Proxy, error) {
 	const op = "collector.geonode.Collector.Collect"
 
@@ -77,11 +72,30 @@ func (c *Collector) Collect(ctx context.Context, url string, filename string) ([
 		log.Warn("http.Get failed", slog.String("err", err.Error()))
 		return nil, err
 	}
+	defer res.Body.Close()
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		log.Warn("http.Get failed", slog.Int("status_code", res.StatusCode))
+		return nil, fmt.Errorf("http.Get failed: %d", res.StatusCode)
+	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		log.Warn("io.ReadAll failed", slog.String("err", err.Error()))
 		return nil, err
+	}
+
+	resp := ApiResponse{}
+	err = json.Unmarshal(body, &resp)
+	if err != nil {
+		log.Warn("json.Unmarshal failed", slog.String("err", err.Error()))
+		return nil, err
+	}
+	log.Info("json.Unmarshal done", slog.Int("len", len(resp.Data)))
+
+	if len(resp.Data) == 0 {
+		log.Warn("no proxies found")
+		return nil, fmt.Errorf("no proxies found")
 	}
 
 	err = c.SaveBodyToFile(ctx, filename, body)
@@ -99,8 +113,8 @@ func (c *Collector) NewPageScheduler() func() string {
 	page := 0
 
 	return func() string {
-		c.log.Info("PageScheduler", slog.Int("page", page))
 		page++
+		c.log.Info("PageScheduler", slog.Int("page", page))
 		return fmt.Sprintf("%s&page=%d", c.Url, page)
 	}
 
@@ -160,77 +174,13 @@ func (c *Collector) SaveProxiesToFile(ctx context.Context, filename string, prox
 }
 
 // TODO: delete this shit code and write normal one
-func ApiResponseToProxiesX(
-	ctx context.Context,
-	log *slog.Logger,
-	tx *sqlx.Tx,
-	countryStorage storage.CountryStorage,
-	res []ApiProxy) ([]domain.Proxy, error) {
-
-	log = log.With(slog.String("op", "collector.geonode.Collector.ApiResponseToProxies"))
-	log.Info("ApiResponseToProxies", slog.Int("len", len(res)))
-
-	countries, err := countryStorage.GetAll(ctx)
-	if err != nil {
-		log.Error("countryStorage.GetAll failed", slog.String("err", err.Error()))
-		return nil, err
-	}
-	countryMap := map[string]int64{}
-	for _, v := range countries {
-		countryMap[v.Code] = v.Id
-	}
-
-	proxies := []domain.Proxy{}
-	for _, v := range res {
-		proxy := domain.Proxy{}
-		proxy.Ip = v.Ip
-		port, err := strconv.Atoi(v.Port)
-		if err != nil {
-			log.Error("strconv.Atoi failed", slog.String("err", err.Error()))
-			return nil, err
-		}
-		proxy.Port = port
-		proxy.Protocol = v.Protocols[0]
-		id, ok := countryMap[v.Country]
-		if !ok {
-			id, err = countryStorage.Savex(ctx, tx, &domain.Country{Code: v.Country})
-			if err != nil {
-				log.Error("countryStorage.Save failed", slog.String("err", err.Error()), slog.Any("country", v.Country))
-				return nil, err
-			}
-		}
-		proxy.CountryId = id
-
-		proxies = append(proxies, proxy)
-	}
-
-	log.Info("ApiResponseToProxies done")
-
-	return proxies, nil
-}
-
-func GetUniqueStrings(insts []string) []string {
-	uniqe := map[string]bool{}
-	out := []string{}
-
-	for _, v := range insts {
-		_, ok := uniqe[v]
-		if !ok {
-			uniqe[v] = true
-			out = append(out, v)
-		}
-	}
-
-	return out
-}
-
 func ApiResponseToProxies(
 	log *slog.Logger,
 	countries []domain.Country,
 	res []ApiProxy,
 ) ([]domain.Proxy, error) {
 
-	log.Info("ApiResponseToProxiesX", slog.Int("len", len(res)))
+	log.Info("ApiResponseToProxies", slog.Int("len", len(res)))
 
 	countryMap := map[string]int64{}
 	for _, v := range countries {
@@ -259,7 +209,7 @@ func ApiResponseToProxies(
 		proxies = append(proxies, proxy)
 	}
 
-	log.Info("ApiResponseToProxiesX done")
+	log.Info("ApiResponseToProxies done")
 
 	return proxies, nil
 }

@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log/slog"
 	"os"
 	"proxyfinder/internal/collector/geonode"
-	"proxyfinder/internal/config"
+	// "proxyfinder/internal/config"
 	"proxyfinder/internal/domain"
 	"proxyfinder/internal/logger"
 
@@ -15,24 +16,45 @@ import (
 	"github.com/mattn/go-sqlite3"
 )
 
-const (
+var (
 	dirPath = "./storage/init/geonode"
 )
 
 type Mute struct{}
+type Config struct {
+	dbPath string `required:"true"`
+	dirPath string `required:"true"`
+	verbose bool
+}
 
 func (m Mute) Write(p []byte) (n int, err error) {
 	return 0, nil
 }
 
-// TODO: delete this shit code and write normal one
-func main() {
-	cfg := config.MustLoadConfig()
-	if cfg.Database.Path == "" {
-		panic("Database path is empty")
+func ParseFlags() *Config {
+	cfg := &Config{}
+	flag.StringVar(&cfg.dbPath, "db", "", "database path")
+	flag.StringVar(&cfg.dirPath, "dir", "", "directory path")
+	flag.BoolVar(&cfg.verbose, "verbose", false, "verbose")
+	flag.Parse()
+
+	if cfg.dirPath == "" {
+		panic("missing directory path")
 	}
 
-	db, err := sqlx.Open("sqlite3", cfg.Database.Path)
+	if cfg.dbPath == "" {
+		panic("missing database path")
+	}
+
+	return cfg
+}
+
+// TODO: delete this shit code and write normal one
+func main() {
+	cfg := ParseFlags()
+	dirPath = cfg.dirPath
+
+	db, err := sqlx.Open("sqlite3", cfg.dbPath)
 	if err != nil {
 		panic(err)
 	}
@@ -48,14 +70,13 @@ func main() {
 	}
 
 	log := slog.New(slog.NewTextHandler(Mute{}, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	if cfg.verbose {
+		log = logger.New("local")
+	}
+	log.Info("initdb", slog.String("db", cfg.dbPath), slog.String("dir", cfg.dirPath))
 
 	args := os.Args
-	for _, arg := range args {
-		if arg == "-v" || arg == "--verbose" {
-			log = logger.New(cfg.Env)
-		}
-	}
-
+	
 	switch args[len(args)-1] {
 	case "up":
 		err = upFillProxyTable(context.Background(), tx, log)
@@ -69,7 +90,7 @@ func main() {
 		tx.Rollback()
 		panic(err)
 	}
-
+	
 	err = tx.Commit()
 	if err != nil {
 		panic(err)

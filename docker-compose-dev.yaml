@@ -6,36 +6,44 @@ services:
     environment:
       - CGO_ENABLED=1
     volumes:
-      - ./server:/app
+      - ./server/config:/app/config
+      - ./server/storage:/app/storage
+      - ./server/build:/app/build
       - $GOPATH/pkg/mod:/go/pkg/mod
       - $GOPATH/bin:/go/bin
+    env_file: ./.env
     ports:
       - 8080:8080
     depends_on:
-      - migrate
+      migrate:
+        condition: service_completed_successfully
 
   scheduler:
     image: golang:1.22
     container_name: proxyfinder-scheduler-dev
-    command: sh -c " 
-      cd /app && \
-      go run cmd/scheduler/main.go --config config/local.yaml --db storage/local.db"
+    command: sh -c "cd /app && make up-scheduler-dev"
     volumes:
       - ./server:/app
       - $GOPATH/pkg/mod:/go/pkg/mod
+      - $GOPATH/bin:/go/bin
+    env_file: ./.env
     depends_on:
-      - migrate
-  
+      migrate:
+        condition: service_completed_successfully
+
   migrate:
-    build: ./server/
+    image: golang:1.22
     container_name: proxyfinder-migrate-dev
     command: bash -c "
       cd /app && \
-      make goose-up && \
-      build/initdb up"
+      go run cmd/goose/main.go --dir migrations/goose sqlite3 storage/local.db up && \
+      go run cmd/initdb/main.go --dir migrations/init/geonode --db storage/local.db up"
+    env_file: ./.env
     volumes:
       - ./server:/app
-  
+      - $GOPATH/pkg/mod:/go/pkg/mod
+      - $GOPATH/bin:/go/bin
+
   frontend:
     image: node:20-alpine
     container_name: proxyfinder-frontend-dev
@@ -45,7 +53,7 @@ services:
     volumes:
       - ./frontend:/app
     command: sh -c "yarn && yarn dev"
-  
+
   admin:
     image: node:20-alpine
     container_name: proxyfinder-admin-dev

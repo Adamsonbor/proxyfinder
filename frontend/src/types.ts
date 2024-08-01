@@ -27,6 +27,6 @@ export type ProxyRow = Proxy & {
 	country_name: string
 	country_code: string
 	status: string
-	created_at_formatted: string
-	updated_at_formatted: string
+	created_at_formatted: Date
+	updated_at_formatted: Date
 }

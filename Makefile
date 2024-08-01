@@ -19,7 +19,7 @@ down:
 	docker-compose down --remove-orphans
 
 up-dev:
-	docker-compose -f docker-compose-dev.yaml up -d
+	docker-compose -f docker-compose-dev.yaml up
 
 down-dev:
 	docker-compose -f docker-compose-dev.yaml down --remove-orphans

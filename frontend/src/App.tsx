@@ -98,8 +98,8 @@ export default function App() {
 			status: statuses.find((status) => status.id === proxy.status_id)?.name || "Unknown",
 			country_name: countries.find((country) => country.id === proxy.country_id)?.name || "Unknown",
 			country_code: countries.find((country) => country.id === proxy.country_id)?.code || "Unknown",
-			created_at_formatted: new Date(proxy.created_at).toLocaleString(),
-			updated_at_formatted: new Date(proxy.updated_at).toLocaleString(),
+			created_at_formatted: new Date(proxy.created_at),
+			updated_at_formatted: new Date(proxy.updated_at),
 		}
 	}
 }

@@ -13,7 +13,8 @@ services:
     ports:
       - 8080:8080
     depends_on:
-      - migrate
+      migrate:
+        condition: service_completed_successfully
 
   scheduler:
     build: ./server/
@@ -27,7 +28,8 @@ services:
       - ./server/build:/app/build
     env_file: ./.env
     depends_on:
-      - migrate
+      migrate:
+        condition: service_completed_successfully
   
   migrate:
     build: ./server/
@@ -35,7 +37,7 @@ services:
     command: bash -c "
       cd /app && \
       build/goose -dir migrations/goose sqlite3 ./storage/prod.db up && \
-      build/initdb --config config/prod.yaml up"
+      build/initdb --dir migrations/init/geonode --db ./storage/prod.db up"
     volumes:
       - ./server/storage:/app/storage
       - ./server/build:/app/build

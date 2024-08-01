@@ -61,7 +61,31 @@ export default function InfiniteTable({
 				</>
 			)
 		},
-		{ field: 'updated_at', headerName: 'UPDATED', minWidth: 150, flex: 1 },
+		{
+			field: 'updated_at_formatted',
+			headerName: 'UPDATED',
+			minWidth: 150,
+			flex: 1,
+			renderCell: (params: any) => {
+				const timeDuration = new Date().getTime() - params.row.updated_at_formatted.getTime();
+				let timeFormatted: string;
+
+				if (timeDuration < 60 * 1000) {
+					timeFormatted = `${Math.floor(timeDuration / 1000)}s`;
+				} else if (timeDuration < 60 * 60 * 1000) {
+					timeFormatted = `${Math.floor(timeDuration / (60 * 1000))}m`;
+				} else if (timeDuration < 24 * 60 * 60 * 1000) {
+					timeFormatted = `${Math.floor(timeDuration / (60 * 60 * 1000))}h`;
+				} else {
+					timeFormatted = `${Math.floor(timeDuration / (24 * 60 * 60 * 1000))}d`;
+				}
+				return (
+					<>
+						{timeFormatted} ago
+					</>
+				)
+			}
+		},
 		{
 			field: 'status',
 			headerName: 'AVAILABLE',
@@ -115,11 +139,11 @@ export default function InfiniteTable({
 				'& .MuiDataGrid-virtualScrollerContent': {
 					height: "calc(100vh - 120px) !important",
 					// {
-						// xs: "calc(100vh - 120px) !important",
-						// sm: "calc(100vh - 120px) !important",
-						// md: "calc(100vh - 120px) !important",
-						// lg: "calc(100vh - 120px) !important",
-						// xl: "calc(100vh - 120px) !important",
+					// xs: "calc(100vh - 120px) !important",
+					// sm: "calc(100vh - 120px) !important",
+					// md: "calc(100vh - 120px) !important",
+					// lg: "calc(100vh - 120px) !important",
+					// xl: "calc(100vh - 120px) !important",
 					// }
 				},
 				'& .MuiDataGrid-cell': {

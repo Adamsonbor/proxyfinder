@@ -7,42 +7,33 @@ import (
 	"proxyfinder/internal/collector/geonode"
 	"proxyfinder/internal/config"
 	"proxyfinder/internal/logger"
-	"proxyfinder/internal/storage/sqlx-storage"
 
-	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/google/uuid"
 )
 
 func main() {
 	cfg := config.MustLoadConfig()
 
-	db, err := sqlx.Open("sqlite3", cfg.Database.Path)
-	if err != nil {
-		panic(err)
-	}
-
 	log := logger.New(cfg.Env)
 
-	countryStorage := sqlxstorage.NewCountry(db)
-	proxyStorage := sqlxstorage.NewProxy(db)
-
-	collector := geonode.New(log, proxyStorage, countryStorage)
+	collector := geonode.New(log)
 	pager := collector.NewPageScheduler()
 
-	page := pager()
-	// fmt.Println(page)
+	for {
+		ctx, cancel := context.WithTimeout(context.Background(), cfg.Collector.Timeout)
+		defer cancel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cfg.Collector.Timeout)
-	defer cancel()
+		pageUrl := pager()
+		uuid := uuid.New().String()
+		filename := fmt.Sprintf("storage/init/test/proxies_%s.json", uuid)
 
-	for i := range 10 {
-		filename := fmt.Sprintf("storage/init/proxies_%d.json", i)
-		log := log.With(slog.String("filename", filename), slog.String("page", page))
-		_, err = collector.Collect(ctx, page, filename)
-		log.Info("collector.Collect done")
+		log := log.With(slog.String("filename", filename), slog.String("page", pageUrl))
+
+		_, err := collector.Collect(ctx, pageUrl, filename)
 		if err != nil {
 			log.Error("collector.Collect failed", slog.String("err", err.Error()))
 			return
 		}
+		log.Info("collector done")
 	}
 }
