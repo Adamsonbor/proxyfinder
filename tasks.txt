@@ -1,0 +1,11 @@
+TODO:
+	- add frontend popup for emails which will have an input field for the email to be sent to
+	- add new button for sending emails
+
+IN PROGRESS:
+
+DONE:
+	- fix apps cofigurations structure
+	- add email sender service
+	- add rabbitmq container for sending emails
+	- add docker compose service for email 

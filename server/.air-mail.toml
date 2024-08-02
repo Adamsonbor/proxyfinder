@@ -1,0 +1,10 @@
+root = "."
+tmp_dir = "build"
+
+[build]
+	cmd="go build -o build/email cmd/email/main.go"
+	bin="build/email"
+	args_bin = ["--config=config/local.yaml"]
+	exclude_regex = [
+		"*.json"
+	]

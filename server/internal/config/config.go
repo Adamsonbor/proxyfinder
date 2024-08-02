@@ -14,16 +14,25 @@ type Config struct {
 	Checker   Checker   `yaml:"checker"`
 	Scheduler Scheduler `yaml:"scheduler"`
 	Database  Database  `yaml:"database"`
-	Email     Email     `yaml:"email"`
+	Mail      Mail      `yaml:"mail"`
+	Rabbit    Rabbit    `yaml:"rabbit"`
 }
 
-type Email struct {
+type Mail struct {
 	From    string        `yaml:"from" required:"true"`
-	Email   string        `yaml:"email" required:"true"`
+	Mail    string        `yaml:"mail" required:"true"`
 	Pass    string        `yaml:"pass" required:"true"`
 	Secure  bool          `yaml:"secure" default:"false"`
 	Addr    string        `yaml:"addr" required:"true"`
 	Port    int           `yaml:"port" default:"587"`
+	Timeout time.Duration `yaml:"timeout"`
+}
+
+type Rabbit struct {
+	Host    string        `yaml:"host" required:"true"`
+	Port    int           `yaml:"port" default:"5672"`
+	User    string        `yaml:"user" required:"true"`
+	Pass    string        `yaml:"pass" required:"true"`
 	Timeout time.Duration `yaml:"timeout"`
 }
 

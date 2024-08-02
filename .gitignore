@@ -6,7 +6,6 @@
 *.pyc
 *.cache
 *.log
-*.txt
 *.tmp
 
 prod

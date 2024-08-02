@@ -27,6 +27,22 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  mail:
+    image: golang:1.22
+    container_name: proxyfinder-mail-dev
+    command: sh -c "cd /app && make up-mail-dev"
+    volumes:
+      - ./server:/app
+      - $GOPATH/pkg/mod:/go/pkg/mod
+      - $GOPATH/bin:/go/bin
+
+  rabbit:
+    image: rabbitmq:3.13-management-alpine
+    container_name: proxyfinder-rabbit-dev
+    ports:
+      - 5672:5672
+      - 15672:15672
+
   migrate:
     image: golang:1.22
     container_name: proxyfinder-migrate-dev

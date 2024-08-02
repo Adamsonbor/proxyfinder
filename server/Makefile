@@ -25,6 +25,9 @@ up-api-dev:
 up-scheduler-dev:
 	air -c .air-scheduler.toml
 
+up-mail-dev:
+	air -c .air-mail.toml
+
 clean:
 	rm -rf $(BIN_DIR)
 

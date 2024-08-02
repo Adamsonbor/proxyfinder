@@ -76,7 +76,7 @@ func (s *Server) GetAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page, perPage := 1, 10
-	
+
 	query := r.URL.Query()
 	var err error
 	if query.Get("page") != "" {
@@ -276,7 +276,7 @@ func (s *Server) GetAllProxy(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	proxies, err := s.proxyStorage.GetAll(context.Background(), page, perPage)
+	proxies, err := s.proxyStorage.GetAll(context.Background(), &sqlxstorage.Options{Page: page, PerPage: perPage})
 	if err != nil {
 		log.Error("get all proxies", slog.String("err", err.Error()))
 		w.WriteHeader(http.StatusInternalServerError)
