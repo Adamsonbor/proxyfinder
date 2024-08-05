@@ -1,6 +1,7 @@
 package rabbit
 
 import (
+	"context"
 	"fmt"
 	"proxyfinder/internal/config"
 
@@ -15,8 +16,9 @@ type RabbitService struct {
 	qname string
 }
 
-func (r *RabbitService) Publish(body []byte) error {
-	err := r.ch.Publish(
+func (r *RabbitService) Publish(ctx context.Context, body []byte) error {
+	err := r.ch.PublishWithContext(
+		ctx,
 		"",
 		r.q.Name,
 		false,

@@ -9,13 +9,14 @@ import (
 )
 
 type Config struct {
-	Env       string    `yaml:"env"`
-	Collector Collector `yaml:"collector"`
-	Checker   Checker   `yaml:"checker"`
-	Scheduler Scheduler `yaml:"scheduler"`
-	Database  Database  `yaml:"database"`
-	Mail      Mail      `yaml:"mail"`
-	Rabbit    Rabbit    `yaml:"rabbit"`
+	Env        string     `yaml:"env"`
+	Collector  Collector  `yaml:"collector"`
+	Checker    Checker    `yaml:"checker"`
+	Scheduler  Scheduler  `yaml:"scheduler"`
+	Database   Database   `yaml:"database"`
+	Mail       Mail       `yaml:"mail"`
+	Rabbit     Rabbit     `yaml:"rabbit"`
+	GoogleAuth GoogleAuth `yaml:"google_auth"`
 }
 
 type Mail struct {
@@ -26,6 +27,21 @@ type Mail struct {
 	Addr    string        `yaml:"addr" required:"true"`
 	Port    int           `yaml:"port" default:"587"`
 	Timeout time.Duration `yaml:"timeout"`
+}
+
+type GoogleAuth struct {
+	ClientID     string         `yaml:"client_id" required:"true"`
+	ClientSecret string         `yaml:"client_secret" required:"true"`
+	RedirectURL  string         `yaml:"redirect_url" required:"true"`
+	Scope        []string       `yaml:"scope" required:"true"`
+	HomeUrl      string         `yaml:"home_url" required:"true"`
+	Endpoint     GoogleEndpoint `yaml:"endpoint" required:"true"`
+}
+
+type GoogleEndpoint struct {
+	AuthURL  string `yaml:"auth_url" required:"true"`
+	TokenURL string `yaml:"token_url" required:"true"`
+	UserInfo string `yaml:"userinfo_url" default:"https://www.googleapis.com/oauth2/v3/userinfo"`
 }
 
 type Rabbit struct {

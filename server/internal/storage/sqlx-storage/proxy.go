@@ -27,6 +27,14 @@ func (s *ProxyStorage) Begin() (*sqlx.Tx, error) {
 	return s.db.Beginx()
 }
 
+func (s *ProxyStorage) Get(ctx context.Context, id int64) (*domain.Proxy, error) {
+	query := "SELECT * FROM proxy WHERE id = ?"
+
+	var proxy domain.Proxy
+	err := s.db.GetContext(ctx, &proxy, query, id)
+	return &proxy, err
+}
+
 func (s *ProxyStorage) Update(ctx context.Context, tx *sqlx.Tx, id int64, fields *storage.ProxyUpdate) error {
 	var proxy domain.Proxy
 	err := tx.GetContext(ctx, &proxy, "SELECT * FROM proxy WHERE id = ?", id)

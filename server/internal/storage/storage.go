@@ -17,6 +17,7 @@ type ProxyUpdate struct {
 }
 
 type ProxyStorage interface {
+	Get(ctx context.Context, id int64) (*domain.Proxy, error)
 	GetAvailable(ctx context.Context) ([]domain.Proxy, error)
 	GetAll(ctx context.Context) ([]domain.Proxy, error)
 	Update(ctx context.Context, tx *sqlx.Tx, id int64, fields *ProxyUpdate) error

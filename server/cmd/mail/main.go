@@ -4,20 +4,29 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"proxyfinder/internal/broker/rabbit"
 	"proxyfinder/internal/config"
+	"proxyfinder/internal/logger"
 	smtpmail "proxyfinder/internal/mail/smtp"
-	sqlxstorage "proxyfinder/internal/storage/v2/sqlx-storage"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
 
+type RabbitMessage struct {
+	Email string
+}
+
 // TODO: delete this shit code and write normal one
 func main() {
 	cfg := config.MustLoadConfig()
 	fmt.Println(cfg)
+
+	// INIT logger
+	log := logger.New(cfg.Env)
+	log.Info("Logger initialized")
 
 	// connect to database
 	db, err := sqlx.Open("sqlite3", cfg.Database.Path)
@@ -25,8 +34,6 @@ func main() {
 		panic(err)
 	}
 	defer db.Close()
-
-	storage := sqlxstorage.New(db)
 
 	// connect to mail queue
 	mailQueue := rabbit.NewRabbit(cfg, "mail")
@@ -38,33 +45,29 @@ func main() {
 	}
 
 	// Initialize mail provider
-	mailProvider := smtpmail.NewSMTPProvider(&cfg.Mail)
+	mailProvider := smtpmail.NewMailService(&cfg.Mail)
 
 	// consume mail queue
+	log.Info("Start consuming mail queue")
 	for msg := range msgs {
-		proxies, err := storage.GetAll(context.Background(), nil)
-		if err != nil {
-			panic(err)
+		var req RabbitMessage
+		if err := json.Unmarshal(msg.Body, &req); err != nil {
+			log.Error("Unmarshal", slog.String("err", err.Error()))
+			continue
 		}
 
-		// convert proxies to json
-		jsonData, err := json.Marshal(proxies)
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Println(string(msg.Body))
+		eMsg := fmt.Sprintf("Hello from Proxpro! Your email %s is verified!", req.Email)
 
 		// send jsondata as file to mail
-		err = mailProvider.SendMailWithAttachment(
-			string(msg.Body),
-			"Proxies",
-			[]byte("This is a list of proxies: "),
-			"proxies.json",
-			jsonData,
+		err = mailProvider.SendMail(
+			context.Background(),
+			req.Email,
+			"Proxpro",
+			[]byte(eMsg),
 		)
 		if err != nil {
-			panic(err)
+			log.Error("SendMail", slog.String("err", err.Error()))
+			continue
 		}
 	}
 }

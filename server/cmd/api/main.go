@@ -3,13 +3,19 @@ package main
 import (
 	"fmt"
 	"net/http"
-	chirouter "proxyfinder/internal/api/chi-router"
+	googleapi "proxyfinder/internal/api/chi-router/auth/google"
+	rabbitApi "proxyfinder/internal/api/chi-router/rabbit"
+	router "proxyfinder/internal/api/chi-router/v1/gorm"
+	routerv2 "proxyfinder/internal/api/chi-router/v2/gorm-sqlx"
+	googleauth "proxyfinder/internal/auth/google"
+	"proxyfinder/internal/broker/rabbit"
 	"proxyfinder/internal/config"
 	"proxyfinder/internal/logger"
 	gormstoragev1 "proxyfinder/internal/storage/gorm-storage"
 	gormstoragev2 "proxyfinder/internal/storage/v2/gorm-sotrage"
 	sqlxstorage "proxyfinder/internal/storage/v2/sqlx-storage"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -45,11 +51,30 @@ func main() {
 	sqlxdb.SetConnMaxLifetime(5)
 
 	// INIT sqlx storage
-
 	sqlxStorage := sqlxstorage.New(sqlxdb)
 
+	// INIT rabbitmq
+	rabbitService := rabbit.NewRabbit(cfg, "mail")
+
+	// INIT google auth
+	googleAuth := googleauth.NewGoogleAuth(&cfg.GoogleAuth)
+
 	// INIT router
-	mux := chirouter.New(log, storage, storagev2, sqlxStorage)
+	mux := chi.NewMux()
+
+	routerv1 := router.New(log, storage)
+	routerv2 := routerv2.New(log, storagev2, sqlxStorage)
+	routerRabbit := rabbitApi.New(log, rabbitService, cfg)
+	routerGoogleAuth := googleapi.NewRouter(log, cfg, googleAuth)
+
+	mux.Mount("/api/v1", routerv1.Router)
+	mux.Mount("/api/v2", routerv2.Router)
+	mux.Mount("/rabbit", routerRabbit.Router)
+	mux.Mount("/auth/google", routerGoogleAuth.Router)
+
+	for _, route := range mux.Routes() {
+		log.Debug(fmt.Sprintf("%s", route.Pattern))
+	}
 
 	http.ListenAndServe(":8080", mux)
 }

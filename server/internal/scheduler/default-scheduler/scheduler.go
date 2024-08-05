@@ -14,6 +14,9 @@ import (
 	"time"
 )
 
+type Observer interface {
+	Update(proxies []domain.Proxy)
+}
 
 type Scheduler struct {
 	cfg          *config.Config
@@ -21,9 +24,33 @@ type Scheduler struct {
 	checker      checker.Checker
 	proxyStorage storage.ProxyStorage
 	stopChan     chan os.Signal
+	observers    []Observer
 }
 
-func NewScheduler(cfg *config.Config, log *slog.Logger, proxyStorage storage.ProxyStorage, checker checker.Checker) *Scheduler {
+func (s *Scheduler) Subscribe(observer Observer) {
+	s.observers = append(s.observers, observer)
+}
+
+func (s *Scheduler) Unsubscribe(observer Observer) {
+	for i, v := range s.observers {
+		if v == observer {
+			s.observers = append(s.observers[:i], s.observers[i+1:]...)
+		}
+	}
+}
+
+func (s *Scheduler) Notify(proxies []domain.Proxy) {
+	for _, v := range s.observers {
+		v.Update(proxies)
+	}
+}
+
+func NewScheduler(
+	cfg *config.Config,
+	log *slog.Logger,
+	proxyStorage storage.ProxyStorage,
+	checker checker.Checker,
+) *Scheduler {
 	return &Scheduler{
 		cfg:          cfg,
 		log:          log,
@@ -82,9 +109,9 @@ func (s *Scheduler) Refresh(ctx context.Context) error {
 	}
 
 	var wg sync.WaitGroup
-	for _, v := range proxies {
+	for i := range proxies {
 		wg.Add(1)
-		go func() {
+		go func(v *domain.Proxy) {
 			defer wg.Done()
 
 			log := log.With(slog.String("proxy", fmt.Sprintf("%s:%d", v.Ip, v.Port)))
@@ -94,10 +121,10 @@ func (s *Scheduler) Refresh(ctx context.Context) error {
 			defer checkCancel()
 
 			start := time.Now()
-			available, _ := s.checker.Check(checkCtx, &v)
-			responseTime := time.Now().Sub(start).Milliseconds()
+			available, _ := s.checker.Check(checkCtx, v)
+			v.ResponseTime = time.Now().Sub(start).Milliseconds()
 
-			log.Debug("End checking", slog.Int64("response time", responseTime))
+			log.Debug("End checking", slog.Int64("response time", v.ResponseTime))
 
 			if available {
 				v.StatusId = domain.STATUS_AVAILABLE
@@ -110,8 +137,9 @@ func (s *Scheduler) Refresh(ctx context.Context) error {
 
 			dbCtx, dbCancel := context.WithTimeout(ctx, s.cfg.Checker.Timeout)
 			defer dbCancel()
+
 			err := s.proxyStorage.Update(dbCtx, tx, v.Id, &storage.ProxyUpdate{
-				ResponseTime: &responseTime,
+				ResponseTime: &v.ResponseTime,
 				StatusId:     &v.StatusId,
 			})
 			if err != nil {
@@ -119,7 +147,7 @@ func (s *Scheduler) Refresh(ctx context.Context) error {
 				return
 			}
 			log.Debug("Done!")
-		}()
+		}(&proxies[i])
 	}
 
 	wg.Wait()
@@ -131,6 +159,8 @@ func (s *Scheduler) Refresh(ctx context.Context) error {
 		tx.Rollback()
 		return err
 	}
+
+	s.Notify(proxies)
 
 	log.Info("Refresh completed.")
 

@@ -14,6 +14,8 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      rabbit:
+        condition: service_healthy
 
   scheduler:
     image: golang:1.22
@@ -26,15 +28,18 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-
-  mail:
-    image: golang:1.22
-    container_name: proxyfinder-mail-dev
-    command: sh -c "cd /app && make up-mail-dev"
-    volumes:
-      - ./server:/app
-      - $GOPATH/pkg/mod:/go/pkg/mod
-      - $GOPATH/bin:/go/bin
+  
+  # mail:
+  #   image: golang:1.22
+  #   container_name: proxyfinder-mail-dev
+  #   command: sh -c "cd /app && make up-mail-dev"
+  #   volumes:
+  #     - ./server:/app
+  #     - $GOPATH/pkg/mod:/go/pkg/mod
+  #     - $GOPATH/bin:/go/bin
+  #   depends_on:
+  #     rabbit:
+  #       condition: service_healthy
 
   rabbit:
     image: rabbitmq:3.13-management-alpine
@@ -42,6 +47,12 @@ services:
     ports:
       - 5672:5672
       - 15672:15672
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   migrate:
     image: golang:1.22

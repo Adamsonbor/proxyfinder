@@ -1,11 +1,22 @@
+// в больницу 16:15 7 августа.
+// забрать направление на киртбая 12.
+// мрт на набережке.
+// 8 августа 12:00 экг и невролог.
+
 TODO:
 	- add frontend popup for emails which will have an input field for the email to be sent to
-	- add new button for sending emails
+	- add onclick event on table row to subscribe to email
+	- add rabbitmq container for sending emails
+	- add docker compose service for email 
+	- add email notifier service that will send email if proxy is available
+	- add rabbitmq message receiver service that will call email notifier service subscribe method
 
 IN PROGRESS:
+	- add google auth2.0 api (login, logout, callback, middleware)
+	- add google icon to header for google auth
+	- add userService to frontend for getting user info and show it in header
+
 
 DONE:
 	- fix apps cofigurations structure
-	- add email sender service
-	- add rabbitmq container for sending emails
-	- add docker compose service for email 
+	- add rabbitmq api to subscribe to email

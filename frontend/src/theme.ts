@@ -35,24 +35,6 @@ declare module '@mui/material' {
 		uppercaseSize: number
 	}
 	interface TypographyVariants extends TypographyVariantsOptions { }
-
-	interface TypeText {
-		black: string
-		secondary: string
-		link: string
-		blue: string
-		lightBlue: string
-		red: string
-		green: string
-		purple: string
-	}
-	interface TypeBackground {
-		blue: string
-		red: string
-		green: string
-		purple: string
-		lightBlue: string
-	}
 }
 
 

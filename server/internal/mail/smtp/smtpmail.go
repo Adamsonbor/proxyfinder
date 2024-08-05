@@ -2,49 +2,78 @@ package smtpmail
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
+	"log/slog"
 	"net/smtp"
 	"proxyfinder/internal/config"
 	"strings"
 )
 
-type MailProvider interface {
-	SendMail(to string, subject string, body string) error
-	SendMails(to []string, subject string, body string) error
+type Mailer interface {
+	SendMail(ctx context.Context, to string, subject string, body string) error
+	SendMails(ctx context.Context, to []string, subject string, body string) error
 	SendMailWithAttachment(to string, subject string, body string, filename string, attachmentData []byte) error
 	SendMailsWithAttachment(to []string, subject string, body string, filename string, attachmentData []byte) error
 }
 
-type SMTPProvider struct {
+type MailService struct {
+	log    *slog.Logger
 	Config *config.Mail
 	Auth   smtp.Auth
 }
 
-func NewSMTPProvider(cfg *config.Mail) *SMTPProvider {
-	return &SMTPProvider{
+func NewMailService(cfg *config.Mail) *MailService {
+	return &MailService{
 		Config: cfg,
 		Auth:   smtp.PlainAuth("", cfg.Mail, cfg.Pass, cfg.Addr),
 	}
 }
 
-func (s *SMTPProvider) SendMail(to string, subject string, body []byte) error {
-	return s.SendMails([]string{to}, subject, body)
+// from: %s\n Subject %s\n\n {body}
+func (s *MailService) SendMail(ctx context.Context, to string, subject string, body []byte) error {
+	return s.SendMails(ctx, []string{to}, subject, body)
 }
 
-func (s *SMTPProvider) SendMails(to []string, subject string, body []byte) error {
+func (s *MailService) SendMails(ctx context.Context, to []string, subject string, body []byte) error {
+	log := s.log.With(slog.String("op", "smtp.MailService.SenvMail"))
+	log.Debug("Start")
+
+	stopCh := make(chan struct{}, 1)
+
 	msg := fmt.Sprintf("From: %s\nSubject: %s\n\n%s", s.Config.From, subject, body)
 
-	return smtp.SendMail(
-		fmt.Sprintf("%s:%d", s.Config.Addr, s.Config.Port),
-		s.Auth,
-		s.Config.Mail,
-		to,
-		[]byte(msg),
-	)
+	go func() {
+		defer close(stopCh)
+
+		err := smtp.SendMail(
+			fmt.Sprintf("%s:%d", s.Config.Addr, s.Config.Port),
+			s.Auth,
+			s.Config.Mail,
+			to,
+			[]byte(msg),
+		)
+		if err != nil {
+			log.Error("SendMail failed", slog.String("err", err.Error()))
+			stopCh <- struct{}{}
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-stopCh:
+		return nil
+	}
 }
 
-func (s *SMTPProvider) SendMailWithAttachment(
+// From %s\n
+// To: %s\n
+// Subject: %s\n\n 
+// {body: string}\n\n 
+// {filename: string, attachmentData: []byte}
+func (s *MailService) SendMailWithAttachment(
 	to string,
 	subject string,
 	body []byte,
@@ -81,7 +110,7 @@ func (s *SMTPProvider) SendMailWithAttachment(
 		msg,
 	)
 }
-func (s *SMTPProvider) SendMailsWithAttachment(
+func (s *MailService) SendMailsWithAttachment(
 	to []string,
 	subject string,
 	body []byte,
@@ -107,5 +136,5 @@ func (s *SMTPProvider) SendMailsWithAttachment(
 	buf.WriteString("\n\n")
 	buf.WriteString("--boundary--")
 
-	return s.SendMails(to, subject, buf.Bytes())
+	return s.SendMails(context.Background(), to, subject, buf.Bytes())
 }
