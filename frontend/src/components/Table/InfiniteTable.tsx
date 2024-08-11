@@ -1,19 +1,22 @@
 import { useTheme } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import ProtocolTab from "../ProtocolTab/ProtocolTab";
-import { Country, ProxyRow } from "../../types";
+import { Favorits, ProxyRow } from "../../types";
+import { IoStar, IoStarOutline } from "react-icons/io5";
 
 interface Props {
 	className?: string;
 	proxies?: ProxyRow[];
-	countries?: Country[];
+	favorits?: Favorits[];
+	favoritHandler?: (proxy_id: number, isFavorite: boolean) => void;
 	sx?: object;
 }
 
 export default function InfiniteTable({
 	className = '',
 	proxies = [],
-	countries = [],
+	favorits = [],
+	favoritHandler = () => {},
 	sx = {},
 }: Props) {
 	const theme = useTheme();
@@ -90,7 +93,7 @@ export default function InfiniteTable({
 			field: 'status',
 			headerName: 'AVAILABLE',
 			minWidth: 150,
-			flex: 1,
+			flex: 1.5,
 			renderCell: (params: any) => (
 				<>
 					<ProtocolTab
@@ -100,16 +103,43 @@ export default function InfiniteTable({
 							color: availableTextColor(params.row.status),
 						}}
 					/>
+					{params.row.isFavorite ? (
+						<IoStar
+							style={{
+								display: "block",
+								margin: 0,
+								padding: "28px",
+								// marginLeft: "28px",
+								color: theme.palette.textGray,
+							}} />
+					) : (
+						<IoStarOutline
+							onClick={() => {
+								console.log(params.row);
+								favoritHandler(params.row.id, !params.row.isFavorite);
+							}}
+							style={{
+								width: "40px",
+								height: "40px",
+								margin: "0px 20px",
+								padding: "10px 10px",
+								color: theme.palette.textGray,
+							}} />
+					)}
 				</>
 			)
 		},
 	]
-	if (!proxies || !countries) {
+	if (!proxies) {
 		return <></>;
 	}
 	return (
 		<DataGrid
-			rows={proxies.map((proxy, index) => ({ ...proxy, id: index }))}
+			rows={proxies.map((proxy, index) => ({
+				...proxy,
+				id: index,
+				isFavorite: favorits?.find((favorit) => favorit.proxy_id === proxy.id) ? true : false,
+			}))}
 			columns={columns}
 			autoHeight
 			hideFooter
@@ -138,17 +168,10 @@ export default function InfiniteTable({
 				},
 				'& .MuiDataGrid-virtualScrollerContent': {
 					height: "calc(100vh - 120px) !important",
-					// {
-					// xs: "calc(100vh - 120px) !important",
-					// sm: "calc(100vh - 120px) !important",
-					// md: "calc(100vh - 120px) !important",
-					// lg: "calc(100vh - 120px) !important",
-					// xl: "calc(100vh - 120px) !important",
-					// }
 				},
 				'& .MuiDataGrid-cell': {
 					border: "none",
-					outline: "none",
+					outline: "none !important",
 					fontSize: theme.typography.fontSize,
 					borderTop: "1px solid " + theme.palette.stroke,
 				},
@@ -182,33 +205,4 @@ export default function InfiniteTable({
 				return theme.palette.redTextUnavailable;
 		}
 	}
-
-	// function getBackgroundColor(protocol: string) {
-	// 	switch (protocol) {
-	// 		case "HTTP":
-	// 			return theme.palette.background.blue;
-	// 		case "HTTPS":
-	// 			return theme.palette.background.purple;
-	// 		case "SOCKS4":
-	// 			return theme.palette.background.green;
-	// 		case "SOCKS5":
-	// 			return theme.palette.background.red;
-	// 		default:
-	// 			return theme.palette.blue;
-	// 	}
-	// }
-	// function getTextColor(protocol: string) {
-	// 	switch (protocol) {
-	// 		case "HTTP":
-	// 			return theme.palette.text.blue;
-	// 		case "HTTPS":
-	// 			return theme.palette.text.purple;
-	// 		case "SOCKS4":
-	// 			return theme.palette.text.green;
-	// 		case "SOCKS5":
-	// 			return theme.palette.text.red;
-	// 		default:
-	// 			return theme.palette.blue;
-	// 	}
-	// }
 }

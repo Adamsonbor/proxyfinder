@@ -4,7 +4,7 @@ import SearchMultipleAutocomplete from "../SearchMultipleAutocomplete/SearchMult
 import CheckboxForm from "../CheckboxForm/CheckboxForm";
 import LinkButton from "../LinkButton/LinkButton";
 import RadioButtonGroup from "../RadioButtonGroup/RadioButtonGroup";
-import { Country, ProxyRow } from "../../types";
+import { ProxyRow } from "../../types";
 import { darkTheme, lightTheme } from "../../theme";
 import ThemeSwitch from "../ThemeSwitch/ThemeSwitch";
 import { Theme } from "@mui/material/styles";
@@ -12,7 +12,6 @@ import { Theme } from "@mui/material/styles";
 interface Props {
 	className?: string
 	sx?: object
-	countries?: Country[]
 	proxies?: ProxyRow[]
 	theme?: Theme
 	setTheme?: (theme: Theme) => void
@@ -42,7 +41,6 @@ export default function LeftPanel({
 	sx = {},
 	proxies = [],
 	setProxies = () => { },
-	countries = [],
 	theme = lightTheme,
 	setTheme = () => { },
 }: Props) {
@@ -50,11 +48,11 @@ export default function LeftPanel({
 	const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
 	const [protocolStates, setProtocolStates] = useState<ProtocolState[]>(protocols);
 	const [selectedStatus, setSelectedStatus] = useState<string>(availableStatuses[0]);
+	let countries: string[] = uniqueArray(proxies.map((proxy) => proxy.country_name));
 
 	const toggleTheme = () => {
 		setTheme(theme === lightTheme ? darkTheme : lightTheme);
 	};
-
 
 	useEffect(() => {
 		setProxies(filterProxies(proxies));
@@ -81,7 +79,7 @@ export default function LeftPanel({
 							height: '100%',
 						}}>
 						<SearchMultipleAutocomplete
-							values={countries?.map((country) => country.name)}
+							values={countries?? []}
 							label="Country or Region"
 							selectedValues={selectedCountries}
 							setSelectedValues={setSelectedCountries}
@@ -186,5 +184,9 @@ export default function LeftPanel({
 		});
 
 		setProtocolStates(newProtocolStates);
+	}
+
+	function uniqueArray<T>(arr: T[]): T[] {
+		return [...new Set(arr)];
 	}
 }

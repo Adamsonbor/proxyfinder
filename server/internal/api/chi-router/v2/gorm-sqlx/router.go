@@ -6,7 +6,9 @@ import (
 	"log/slog"
 	"net/http"
 	"proxyfinder/internal/api"
+	"proxyfinder/internal/auth"
 	"proxyfinder/internal/domain"
+	"proxyfinder/internal/storage"
 	gormstorage "proxyfinder/internal/storage/v2/gorm-sotrage"
 	sqlxstorage "proxyfinder/internal/storage/v2/sqlx-storage"
 	"reflect"
@@ -23,11 +25,23 @@ type Server struct {
 	Router       *chi.Mux
 	storage      *gormstorage.Storage
 	proxyStorage *sqlxstorage.ProxyStorage
+	jwt          auth.JWTService
 }
 
-func New(log *slog.Logger, storage *gormstorage.Storage, proxyStorage *sqlxstorage.ProxyStorage) *Server {
+func New(
+	log *slog.Logger,
+	storage *gormstorage.Storage,
+	proxyStorage *sqlxstorage.ProxyStorage,
+	jwt auth.JWTService,
+) *Server {
 	r := chi.NewRouter()
-	s := Server{log: log, Router: r, storage: storage, proxyStorage: proxyStorage}
+	s := Server{
+		log:          log,
+		Router:       r,
+		storage:      storage,
+		proxyStorage: proxyStorage,
+		jwt:          jwt,
+	}
 
 	// A good base middleware stack
 	r.Use(middleware.RequestID)
@@ -35,25 +49,16 @@ func New(log *slog.Logger, storage *gormstorage.Storage, proxyStorage *sqlxstora
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"https://*", "http://*"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
-		ExposedHeaders: []string{"Content-Range"},
-		MaxAge:         300, // Maximum value not ignored by any of major browsers
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "Content-Range"},
 	}))
 
-	crud := r.Route("/", func(r chi.Router) {
-		r.Route("/{id}", func(r chi.Router) {
-			r.Use(idPermissionMiddleware)
-			r.Get("/", s.Get)
-			r.Put("/", s.Update)
-			r.Delete("/", s.Delete)
-		})
-		r.Get("/", s.GetAll)
-		r.Post("/", s.Create)
-	})
+	NewUserRouter(log, r, storage, jwt)
+	NewFavoritsRouter(log, r, storage, jwt)
 
-	r.Mount("/status", crud)
-	r.Mount("/country", crud)
+	r.Route("/status", s.Crud)
+	r.Route("/country", s.Crud)
 	r.Route("/proxy", func(r chi.Router) {
 		r.Route("/{id}", func(r chi.Router) {
 			r.Use(idPermissionMiddleware)
@@ -68,6 +73,17 @@ func New(log *slog.Logger, storage *gormstorage.Storage, proxyStorage *sqlxstora
 	return &s
 }
 
+func (s *Server) Crud(r chi.Router) {
+	r.Get("/", s.GetAll)
+	r.Post("/", s.Create)
+	r.Route("/{id}", func(r chi.Router) {
+		r.Use(idPermissionMiddleware)
+		r.Get("/", s.Get)
+		r.Put("/", s.Update)
+		r.Delete("/", s.Delete)
+	})
+}
+
 func (s *Server) GetAll(w http.ResponseWriter, r *http.Request) {
 	insts := s.GetSliceOfType(r.URL.Path)
 	if insts == nil {
@@ -75,26 +91,7 @@ func (s *Server) GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	page, perPage := 1, 10
-
-	query := r.URL.Query()
-	var err error
-	if query.Get("page") != "" {
-		page, err = strconv.Atoi(query.Get("page"))
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
-	if query.Get("perPage") != "" {
-		perPage, err = strconv.Atoi(query.Get("perPage"))
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
-
-	err = s.storage.GetAllFilter(insts, page, perPage)
+	err := s.storage.GetAllFilter(insts, s.GetParams(r))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -276,7 +273,7 @@ func (s *Server) GetAllProxy(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	proxies, err := s.proxyStorage.GetAll(context.Background(), &sqlxstorage.Options{Page: page, PerPage: perPage})
+	proxies, err := s.proxyStorage.GetAll(context.Background(), &storage.Options{Page: page, PerPage: perPage})
 	if err != nil {
 		log.Error("get all proxies", slog.String("err", err.Error()))
 		w.WriteHeader(http.StatusInternalServerError)
@@ -297,6 +294,18 @@ func (s *Server) GetAllProxy(w http.ResponseWriter, r *http.Request) {
 	log.Info("Done")
 }
 
+func (self *Server) GetParams(r *http.Request) *storage.Options {
+	query := r.URL.Query()
+
+	page, _ := strconv.Atoi(query.Get("page"))
+	perPage, _ := strconv.Atoi(query.Get("perPage"))
+	return &storage.Options{
+		Page:    page,
+		PerPage: perPage,
+	}
+}
+
+// Check if id is a number and set it in context
 func idPermissionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
@@ -334,4 +343,39 @@ func (s *Server) GetSliceOfType(path string) interface{} {
 		return &[]domain.Country{}
 	}
 	return nil
+}
+
+func JSONResponse(
+	w http.ResponseWriter,
+	status string,
+	data interface{},
+	err error,
+) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	errMsg := ""
+	if err != nil {
+		errMsg = err.Error()
+	}
+
+	res := api.Response{Status: status, Data: data, Error: errMsg}
+	err = json.NewEncoder(w).Encode(res)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+
+	return nil
+}
+
+func ReturnJson(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	err := json.NewEncoder(w).Encode(data)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }

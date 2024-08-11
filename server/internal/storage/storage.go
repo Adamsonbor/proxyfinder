@@ -7,6 +7,11 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+type Options struct {
+	PerPage int
+	Page    int
+}
+
 type ProxyUpdate struct {
 	Ip           *string
 	Port         *int

@@ -44,10 +44,7 @@ func New(log *slog.Logger, rabbit *rabbit.RabbitService, cfg *config.Config) *Ro
 		MaxAge:         300, // Maximum value not ignored by any of major browsers
 	}))
 
-
-	r.Route("/", func(r chi.Router) {
-		r.Post("/publish", router.Publish)
-	})
+	r.Post("/publish", router.Publish)
 
 	return router
 }

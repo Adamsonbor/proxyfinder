@@ -41,11 +41,25 @@ type Country struct {
 
 func (c *Country) TableName() string { return "country" }
 
-//
-// type Protocol struct {
-// 	Id        int64
-// 	Name      string
-// 	CreatedAt time.Time `db:"created_at"`
-// 	UpdatedAt time.Time `db:"updated_at"`
-// }
-// func (p *Protocol) TableName() string { return "protocol" }
+type User struct {
+	Id          int64     `json:"id"`
+	Name        string    `json:"name"`
+	Email       string    `json:"email"`
+	Phone       string    `json:"phone"`
+	PhotoUrl    string    `json:"photo_url" db:"photo_url"`
+	DateOfBirth time.Time    `json:"date_of_birth" db:"date_of_birth"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+}
+
+func (u *User) TableName() string { return "user" }
+
+type Favorits struct {
+	Id        int64     `json:"id"`
+	UserId    int64     `json:"user_id" db:"user_id"`
+	ProxyId   int64     `json:"proxy_id" db:"proxy_id"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+func (s *Favorits) TableName() string { return "favorits" }

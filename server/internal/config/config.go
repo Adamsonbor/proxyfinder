@@ -17,6 +17,7 @@ type Config struct {
 	Mail       Mail       `yaml:"mail"`
 	Rabbit     Rabbit     `yaml:"rabbit"`
 	GoogleAuth GoogleAuth `yaml:"google_auth"`
+	JWT        JWT        `yaml:"jwt"`
 }
 
 type Mail struct {
@@ -30,18 +31,25 @@ type Mail struct {
 }
 
 type GoogleAuth struct {
-	ClientID     string         `yaml:"client_id" required:"true"`
+	ClientId     string         `yaml:"client_id" required:"true"`
 	ClientSecret string         `yaml:"client_secret" required:"true"`
-	RedirectURL  string         `yaml:"redirect_url" required:"true"`
+	RedirectUrl  string         `yaml:"redirect_url" required:"true"`
 	Scope        []string       `yaml:"scope" required:"true"`
-	HomeUrl      string         `yaml:"home_url" required:"true"`
+	RedirectTo   string         `yaml:"redirect_to" required:"true"`
 	Endpoint     GoogleEndpoint `yaml:"endpoint" required:"true"`
 }
 
 type GoogleEndpoint struct {
-	AuthURL  string `yaml:"auth_url" required:"true"`
-	TokenURL string `yaml:"token_url" required:"true"`
+	AuthUrl  string `yaml:"auth_url" required:"true"`
+	TokenUrl string `yaml:"token_url" required:"true"`
 	UserInfo string `yaml:"userinfo_url" default:"https://www.googleapis.com/oauth2/v3/userinfo"`
+}
+
+type JWT struct {
+	Secret          string        `yaml:"secret" required:"true"`
+	AccessTokenTTL  time.Duration `yaml:"access_token_ttl" default:"15m"`
+	RefreshTokenTTL time.Duration `yaml:"refresh_token_ttl" default:"24h"`
+	Timeout         time.Duration `yaml:"timeout"`
 }
 
 type Rabbit struct {

@@ -3,6 +3,7 @@
 *.log
 *.txt
 *.db
+tmp
 
 build
 *.yaml

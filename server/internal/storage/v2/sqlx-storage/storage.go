@@ -2,6 +2,7 @@ package sqlxstorage
 
 import (
 	"context"
+	"proxyfinder/internal/storage"
 	"proxyfinder/internal/storage/v2/dto"
 
 	"github.com/jmoiron/sqlx"
@@ -15,22 +16,17 @@ func New(db *sqlx.DB) *ProxyStorage {
 	return &ProxyStorage{db: db}
 }
 
-type Options struct {
-	PerPage int
-	Page    int
-}
-
 // If options is nil, all proxies will be returned else only options.PerPage proxies will be returned
 // If options.Page is 0, it will be set to 1
 // If options.PerPage is 0, it will be set to 10
-func (s *ProxyStorage) GetAll(ctx context.Context, options *Options) ([]dto.ProxyDTO, error) {
+func (s *ProxyStorage) GetAll(ctx context.Context, options *storage.Options) ([]dto.ProxyDTO, error) {
 	var (
 		proxies []dto.ProxyDTO
 		offset  int
 	)
 
 	query := `
-        SELECT p.id, p.ip, p.port, p.protocol, p.response_time,
+        SELECT p.id, p.ip, p.port, p.protocol, p.response_time, p.created_at, p.updated_at,
 		   s.id as "status.id", s.name as "status.name",
 		   s.created_at as "status.created_at", s.updated_at as "status.updated_at",
 		   c.id as "country.id", c.name as "country.name", c.code as "country.code",
@@ -42,7 +38,7 @@ func (s *ProxyStorage) GetAll(ctx context.Context, options *Options) ([]dto.Prox
     `
 
 	if options == nil {
-		options = &Options{}
+		options = &storage.Options{}
 	} else {
 		if options.PerPage == 0 {
 			options.PerPage = 10

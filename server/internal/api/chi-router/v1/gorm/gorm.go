@@ -24,7 +24,11 @@ type Server struct {
 
 func New(log *slog.Logger, storage *gormstorage.Storage) *Server {
 	r := chi.NewRouter()
-	s := Server{log: log, Router: r, storage: storage}
+	s := Server{
+		log:     log,
+		Router:  r,
+		storage: storage,
+	}
 
 	// A good base middleware stack
 	r.Use(middleware.RequestID)
@@ -38,22 +42,22 @@ func New(log *slog.Logger, storage *gormstorage.Storage) *Server {
 		MaxAge:         300, // Maximum value not ignored by any of major browsers
 	}))
 
-	crud := r.Route("/", func(r chi.Router) {
-		r.Route("/{id}", func(r chi.Router) {
-			r.Use(idPermissionMiddleware)
-			r.Get("/", s.Get)
-			r.Put("/", s.Update)
-			r.Delete("/", s.Delete)
-		})
-		r.Get("/", s.GetAll)
-		r.Post("/", s.Create)
-	})
-
-	r.Mount("/proxy", crud)
-	r.Mount("/status", crud)
-	r.Mount("/country", crud)
+	r.Route("/proxy", s.Crud)
+	r.Route("/status", s.Crud)
+	r.Route("/country", s.Crud)
 
 	return &s
+}
+
+func (s *Server) Crud(r chi.Router) {
+	r.Get("/", s.GetAll)
+	r.Post("/", s.Create)
+	r.Route("/{id}", func(r chi.Router) {
+		r.Use(idPermissionMiddleware)
+		r.Get("/", s.Get)
+		r.Put("/", s.Update)
+		r.Delete("/", s.Delete)
+	})
 }
 
 func (s *Server) GetAll(w http.ResponseWriter, r *http.Request) {

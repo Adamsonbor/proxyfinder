@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	googleapi "proxyfinder/internal/api/chi-router/auth/google"
 	rabbitApi "proxyfinder/internal/api/chi-router/rabbit"
 	router "proxyfinder/internal/api/chi-router/v1/gorm"
 	routerv2 "proxyfinder/internal/api/chi-router/v2/gorm-sqlx"
-	googleauth "proxyfinder/internal/auth/google"
+	jwtservice "proxyfinder/internal/auth/jwt"
 	"proxyfinder/internal/broker/rabbit"
 	"proxyfinder/internal/config"
 	"proxyfinder/internal/logger"
@@ -46,35 +47,37 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	sqlxdb.SetMaxIdleConns(10)
-	sqlxdb.SetMaxOpenConns(100)
-	sqlxdb.SetConnMaxLifetime(5)
 
 	// INIT sqlx storage
 	sqlxStorage := sqlxstorage.New(sqlxdb)
 
-	// INIT rabbitmq
+	// // INIT rabbitmq
 	rabbitService := rabbit.NewRabbit(cfg, "mail")
 
-	// INIT google auth
-	googleAuth := googleauth.NewGoogleAuth(&cfg.GoogleAuth)
+	// INIT jwt
+	jwt := jwtservice.NewJWTService(log, cfg, storagev2)
 
 	// INIT router
 	mux := chi.NewMux()
 
+	// INIT routers
 	routerv1 := router.New(log, storage)
-	routerv2 := routerv2.New(log, storagev2, sqlxStorage)
+	routerv2 := routerv2.New(log, storagev2, sqlxStorage, jwt)
 	routerRabbit := rabbitApi.New(log, rabbitService, cfg)
-	routerGoogleAuth := googleapi.NewRouter(log, cfg, googleAuth)
+	routerGoogle := googleapi.NewRouter(log, cfg, storagev2)
 
+	// register routes
 	mux.Mount("/api/v1", routerv1.Router)
 	mux.Mount("/api/v2", routerv2.Router)
 	mux.Mount("/rabbit", routerRabbit.Router)
-	mux.Mount("/auth/google", routerGoogleAuth.Router)
+	mux.Mount("/auth/google", routerGoogle.Router)
 
-	for _, route := range mux.Routes() {
-		log.Debug(fmt.Sprintf("%s", route.Pattern))
-	}
+	// print routes
+	chi.Walk(mux, func(method, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
+		log.Info(route, slog.String("method", method))
+		return nil
+	})
 
+	// run server
 	http.ListenAndServe(":8080", mux)
 }

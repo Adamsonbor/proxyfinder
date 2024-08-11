@@ -18,7 +18,7 @@ export enum ApiStatus {
 	Retrying,
 }
 
-interface IApiData {
+export interface IApiData {
 	status: ApiStatus
 	error: any,
 	data: any,

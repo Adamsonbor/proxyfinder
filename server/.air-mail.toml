@@ -8,3 +8,5 @@ tmp_dir = "build"
 	exclude_regex = [
 		"*.json"
 	]
+[log]
+	main_only = true

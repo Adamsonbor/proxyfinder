@@ -1,6 +1,7 @@
 package gormstorage
 
 import (
+	"proxyfinder/internal/storage"
 	gormstoragev1 "proxyfinder/internal/storage/gorm-storage"
 
 	"gorm.io/gorm"
@@ -18,15 +19,30 @@ func New(db *gorm.DB) *Storage {
 	}
 }
 
-func (s *Storage) GetAllFilter(insts interface{}, page int, perPage int) error {
-	if page == 0 {
-		page = 1
+func (s *Storage) GetAllFilter(insts interface{}, options *storage.Options) error {
+	if options.Page == 0 {
+		options.Page = 1
 	}
-	if perPage == 0 {
-		perPage = 10
+	if options.PerPage == 0 {
+		options.PerPage = 10
 	}
 
-	offset := (page - 1) * perPage
+	offset := (options.Page - 1) * options.PerPage
 
-	return s.db.Limit(perPage).Offset(offset).Find(insts).Error
+	return s.db.Limit(options.PerPage).Offset(offset).Find(insts).Error
+}
+
+// Get all rows by fild
+func (self *Storage) GetAllBy(inst interface{}, field string, value interface{}) error {
+	return self.db.Where(field+" = ?", value).Find(inst).Error
+}
+
+// Get all rows by multiple fields
+func (self *Storage) GetAllByFields(inst interface{}, fields interface{}) error {
+	return self.db.Where(fields).Find(inst).Error
+}
+
+// Get by field like email or username
+func (s *Storage) GetBy(inst interface{}, field string, value interface{}) error {
+	return s.db.Where(field+" = ?", value).First(inst).Error
 }

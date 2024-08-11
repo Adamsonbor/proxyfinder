@@ -4,19 +4,44 @@
 // 8 августа 12:00 экг и невролог.
 
 TODO:
-	- add frontend popup for emails which will have an input field for the email to be sent to
-	- add onclick event on table row to subscribe to email
+	server:
+		- add email notifier service that will send email with available favorites
+		- add rabbitmq message receiver service that will call email notifier service subscribe method
+		- add logout endpoint for google auth
+		- add rabbitmq api to subscribe to email
+
 	- add rabbitmq container for sending emails
 	- add docker compose service for email 
-	- add email notifier service that will send email if proxy is available
-	- add rabbitmq message receiver service that will call email notifier service subscribe method
+	- Do refactoring
+
 
 IN PROGRESS:
-	- add google auth2.0 api (login, logout, callback, middleware)
-	- add google icon to header for google auth
-	- add userService to frontend for getting user info and show it in header
-
+	frontend:
+		- add onclick event on table row to
+			change favorite state and send request to backend
+		- fix login (add login button on header that should open a modal widow
+			which contains oauth2.0 buttons)
+		- add permission for setting favorits 
+			(user should be authenticated for change proxy favorite status)
+	server:
+		- add jwt service for auth
+		- add jwt middleware
+		- add refresh endpoint for jwt
+		- add google auth2.0 api (login, logout, callback, middleware)
 
 DONE:
+	frontend:
+		- add favorite icon to rows
+		- add User icon to header
+		- add useApiV2 to frontend for getting users
+		- add google icon to header for google auth
+		- add Github icon to header for auth (soon)
+		- add Mail.ru icon to header for auth (soon)
+	server:
+		- add favorits endpoint
+		- add favorits router
+		- add Favorits table in db (userId, proxyId)
+		- add User table in db to store user info (email, name, id)
+		- add User storage (gorm) to store user info
+
 	- fix apps cofigurations structure
-	- add rabbitmq api to subscribe to email
