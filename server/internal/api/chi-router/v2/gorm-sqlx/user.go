@@ -97,7 +97,7 @@ func (self *UserRouter) UpdateUser(w http.ResponseWriter, r *http.Request) {
 func (self *UserRouter) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	userId := r.Context().Value("user_id").(int64)
 
-	err := self.storage.Delete(&domain.User{Id: userId})
+	err := self.storage.Delete(&domain.User{}, "user_id = ?", userId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

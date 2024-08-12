@@ -3,7 +3,7 @@ export function SetCookie(name: string, value: string, expireSecond: number) {
 	document.cookie = name + "=" + value + ";" + expires + ";path=/";
 }
 
-export function GetCookie(name: string) {
+export function GetCookie(name: string): string | null {
 	var nameEQ = name + "=";
 	var ca = document.cookie.split(';');
 	for (var i = 0; i < ca.length; i++) {

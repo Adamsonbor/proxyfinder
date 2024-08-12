@@ -7,9 +7,9 @@ TODO:
 	server:
 		- add email notifier service that will send email with available favorites
 		- add rabbitmq message receiver service that will call email notifier service subscribe method
-		- add logout endpoint for google auth
 		- add rabbitmq api to subscribe to email
 
+	- add redis cache
 	- add rabbitmq container for sending emails
 	- add docker compose service for email 
 	- Do refactoring
@@ -17,20 +17,19 @@ TODO:
 
 IN PROGRESS:
 	frontend:
-		- add onclick event on table row to
-			change favorite state and send request to backend
+		- fix token usage, use refresh token if access token is expired
 		- fix login (add login button on header that should open a modal widow
 			which contains oauth2.0 buttons)
-		- add permission for setting favorits 
-			(user should be authenticated for change proxy favorite status)
 	server:
-		- add jwt service for auth
-		- add jwt middleware
-		- add refresh endpoint for jwt
-		- add google auth2.0 api (login, logout, callback, middleware)
+		- add GetUserByRefreshToken function that will return user by refresh token
+			to userStorage
 
 DONE:
 	frontend:
+		- add onclick event on table row to
+			change favorite state and send request to backend
+		- add permission for setting favorits 
+			(user should be authenticated for change proxy favorite status)
 		- add favorite icon to rows
 		- add User icon to header
 		- add useApiV2 to frontend for getting users
@@ -38,10 +37,19 @@ DONE:
 		- add Github icon to header for auth (soon)
 		- add Mail.ru icon to header for auth (soon)
 	server:
+		- fix gorm delete method
+		- fix favorits endpoint
+		- add UserStorage interface
+		- add sqlx UserStorage
+		- add refresh endpoint for jwt
+		- add jwt service for auth
+		- add jwt middleware
+		- add google auth2.0 api (login, callback)
 		- add favorits endpoint
 		- add favorits router
 		- add Favorits table in db (userId, proxyId)
 		- add User table in db to store user info (email, name, id)
 		- add User storage (gorm) to store user info
 
+	- add Session table to associate jwt with user
 	- fix apps cofigurations structure

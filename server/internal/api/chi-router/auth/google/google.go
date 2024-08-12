@@ -6,10 +6,11 @@ import (
 	"log/slog"
 	"net/http"
 	"proxyfinder/internal/api"
+	"proxyfinder/internal/auth"
 	jwtservice "proxyfinder/internal/auth/jwt"
 	"proxyfinder/internal/config"
 	"proxyfinder/internal/domain"
-	gormstorage "proxyfinder/internal/storage/v2/gorm-sotrage"
+	"proxyfinder/internal/storage"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -19,22 +20,21 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	"google.golang.org/api/people/v1"
-	"gorm.io/gorm"
 )
 
 type Router struct {
 	log         *slog.Logger
 	cfg         *config.Config
 	gCfg        *oauth2.Config
-	userStorage *gormstorage.Storage
-	jwt         *jwtservice.JWTService
+	userStorage storage.UserStorage
+	jwt         auth.JWTService
 	Router      *chi.Mux
 }
 
 func NewRouter(
 	log *slog.Logger,
 	cfg *config.Config,
-	userStorage *gormstorage.Storage,
+	userStorage storage.UserStorage,
 ) *Router {
 	r := chi.NewRouter()
 
@@ -75,7 +75,44 @@ func NewRouter(
 	// and redirect to frontend
 	r.Get("/callback", router.Callback)
 
+	// get refresh token from query params and create new jwt pair (access_token, refresh_token)
+	r.Get("/refresh", router.Refresh)
+
 	return router
+}
+
+func (self *Router) Refresh(w http.ResponseWriter, r *http.Request) {
+	log := self.log.With(slog.String("op", "GoogleAuth.Refresh"))
+
+	refreshToken := r.URL.Query().Get("refresh_token")
+	if refreshToken == "" {
+		log.Debug("refresh token is empty")
+		ReturnError(log, w, http.StatusBadRequest, errors.New("refresh token is empty"))
+		return
+	}
+
+	err := self.jwt.ValidateToken(refreshToken)
+	if err != nil {
+		log.Debug("validate token error", slog.Any("error", err))
+		ReturnError(log, w, http.StatusUnauthorized, err)
+		return
+	}
+
+	user, err := self.userStorage.GetByRefreshToken(r.Context(), refreshToken)
+	if err != nil {
+		log.Debug("get user by refresh token error", slog.Any("error", err))
+		ReturnError(log, w, http.StatusUnauthorized, err)
+		return
+	}
+
+	err = self.GenerateAndSetCoockies(w, r, user)
+	if err != nil {
+		log.Debug("generate tokens and set cookies error", slog.Any("error", err))
+		ReturnError(log, w, http.StatusUnauthorized, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (self *Router) Login(w http.ResponseWriter, r *http.Request) {
@@ -96,37 +133,60 @@ func (self *Router) Callback(w http.ResponseWriter, r *http.Request) {
 	log.Debug("token", slog.Any("token", token))
 
 	// get user info from google api
-	user, err := self.UserInfo(token)
+	userInfo, err := self.UserInfo(token)
 	if err != nil {
 		ReturnError(log, w, http.StatusUnauthorized, err)
 		return
 	}
-	log.Debug("user info", slog.Any("user", user))
+	log.Debug("user info", slog.Any("user", userInfo))
 
 	// check if user exists
 	// if not create new
-	err = self.userStorage.GetBy(user, "email", user.Email)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		inst, err := self.userStorage.Create(user)
-		log.Debug("create user", slog.Any("user", inst))
-		if err != nil {
-			ReturnError(log, w, http.StatusInternalServerError, err)
-			return
-		}
+	ctx, cancel := context.WithTimeout(context.Background(), self.cfg.Database.Timeout)
+	defer cancel()
 
-		newUser, ok := inst.(*domain.User)
-		if !ok {
-			ReturnError(log, w, http.StatusInternalServerError, err)
-			return
-		}
-
-		user = newUser
+	tx, err := self.userStorage.Begin(ctx)
+	if err != nil {
+		ReturnError(log, w, http.StatusInternalServerError, err)
+		return
 	}
 
-	log.Debug("success", slog.Any("user", user))
-	// generate new tokens and set it in cookies
-	err = self.GenerateAndSetCoockies(w, r, user)
+	user, err := self.userStorage.GetBy(ctx, "email", userInfo.Email)
+	if errors.Is(err, storage.ErrRecordNotFound) {
+		user, err = self.userStorage.Create(ctx, tx, userInfo)
+		log.Debug("create user", slog.Any("user", user))
+		if err != nil {
+			tx.Rollback()
+			log.Debug("create user error", slog.Any("error", err))
+			ReturnError(log, w, http.StatusInternalServerError, err)
+			return
+		}
+	} else if err != nil {
+		tx.Rollback()
+		log.Debug("get user error", slog.Any("error", err))
+		ReturnError(log, w, http.StatusInternalServerError, err)
+		return
+	}
+	log.Debug("user", slog.Any("user", user))
+
+	accessToken, refreshToken, err := self.GenerateTokens(user)
 	if err != nil {
+		log.Debug("generate tokens error", slog.Any("error", err))
+		ReturnError(log, w, http.StatusInternalServerError, err)
+		return
+	}
+	self.setCookies(w, accessToken, refreshToken)
+	err = self.userStorage.NewSession(ctx, tx, user.Id, refreshToken)
+	if err != nil {
+		tx.Rollback()
+		log.Debug("create session error", slog.Any("error", err))
+		ReturnError(log, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Debug("tx commit error", slog.Any("error", err))
 		ReturnError(log, w, http.StatusInternalServerError, err)
 		return
 	}

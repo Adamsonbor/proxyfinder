@@ -10,10 +10,14 @@ import (
 
 type ProxyStorage struct {
 	db *sqlx.DB
+	UserStorage storage.UserStorage
 }
 
 func New(db *sqlx.DB) *ProxyStorage {
-	return &ProxyStorage{db: db}
+	return &ProxyStorage{
+		db: db,
+		UserStorage: NewUserStorage(db),
+	}
 }
 
 // If options is nil, all proxies will be returned else only options.PerPage proxies will be returned

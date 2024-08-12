@@ -9,8 +9,6 @@ export default function UserBlock({
 	user,
 }: Props) {
 
-	console.log(user);
-
 	return (
 		<>
 			<Box

@@ -20,9 +20,13 @@ export default function HomePage() {
 	const [favorits, setFavorits] = useState<Favorits[]>([])
 	const [user, setUser] = useState<User | undefined>(undefined);
 
-	let countries: Country[] = []
+	let countries: Country[] = [];
 	let proxiesData: ProxyV2[] = useApiV2(`/proxy?perPage=7000`).data;
-	let favoritsData: Favorits[] = useApiV2(`/favorits`).data;
+	let favoritsData: Favorits[] = [];
+	const accessToken: string | null = GetCookie("access_token")
+	if (accessToken) {
+		favoritsData = useApiV2(`/favorits`, accessToken).data;
+	}
 
 	useEffect(() => {
 		if (proxiesData) {
@@ -56,7 +60,7 @@ export default function HomePage() {
 								<InfiniteTable
 									proxies={proxies}
 									favorits={favorits}
-									favoritHandler={(proxy_id, isFavorite) => { }}
+									favoriteHandler={favoriteHandler}
 									className="col-10" />
 							</div>
 						</div>
@@ -65,6 +69,50 @@ export default function HomePage() {
 			</ConfigProvider>
 		</>
 	);
+
+	function favoriteHandler(proxyId: number, isFavorite: boolean) {
+		if (!user) {
+			return;
+		}
+		console.log(proxyId, isFavorite);
+		if (isFavorite) {
+			fetch(`${config.server.apiV2Url}/favorits/${proxyId}`, {
+				method: "DELETE",
+				headers: {
+					"Authorization": `Bearer ${GetCookie("access_token")}`,
+				}
+			})
+				.then(res => {
+					if (res.status === 200) {
+						setFavorits(favorits.filter(favorit => favorit.proxy_id !== proxyId))
+					}
+				})
+				.catch(err => console.log(err));
+		} else {
+			fetch(`${config.server.apiV2Url}/favorits`, {
+				method: "POST",
+				headers: {
+					"Authorization": `Bearer ${GetCookie("access_token")}`,
+				},
+				body: JSON.stringify({
+					user_id: user.id,
+					proxy_id: proxyId,
+				})
+			})
+				.then(res => {
+					if (res.status === 200) {
+						setFavorits([...favorits, {
+							id: 0,
+							user_id: user.id,
+							proxy_id: proxyId,
+							created_at: "",
+							updated_at: "",
+						}])
+					}
+				})
+				.catch(err => console.log(err));
+		}
+	}
 
 	function UserInfo() {
 		const access_token = GetCookie("access_token");
@@ -91,6 +139,7 @@ export default function HomePage() {
 			})
 			.catch(err => console.log(err));
 	}
+
 
 	function proxyV2ToProxyRow(proxy: ProxyV2): ProxyRow {
 		return {

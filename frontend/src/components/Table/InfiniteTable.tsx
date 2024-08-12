@@ -1,4 +1,4 @@
-import { useTheme } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import ProtocolTab from "../ProtocolTab/ProtocolTab";
 import { Favorits, ProxyRow } from "../../types";
@@ -8,7 +8,7 @@ interface Props {
 	className?: string;
 	proxies?: ProxyRow[];
 	favorits?: Favorits[];
-	favoritHandler?: (proxy_id: number, isFavorite: boolean) => void;
+	favoriteHandler?: (proxy_id: number, isFavorite: boolean) => void;
 	sx?: object;
 }
 
@@ -16,7 +16,7 @@ export default function InfiniteTable({
 	className = '',
 	proxies = [],
 	favorits = [],
-	favoritHandler = () => {},
+	favoriteHandler = () => { },
 	sx = {},
 }: Props) {
 	const theme = useTheme();
@@ -93,7 +93,7 @@ export default function InfiniteTable({
 			field: 'status',
 			headerName: 'AVAILABLE',
 			minWidth: 150,
-			flex: 1.5,
+			flex: 1,
 			renderCell: (params: any) => (
 				<>
 					<ProtocolTab
@@ -103,41 +103,66 @@ export default function InfiniteTable({
 							color: availableTextColor(params.row.status),
 						}}
 					/>
+				</>
+			)
+		},
+		{
+			field: 'isFavorite',
+			headerName: 'FAVORITE',
+			minWidth: 50,
+			flex: 0.5,
+			renderCell: (params: any) => (
+				<Box
+					sx={{
+						display: "flex",
+						flexDirection: "row",
+						justifyContent: "right",
+						alignItems: "center",
+						height: "100%",
+					}}>
 					{params.row.isFavorite ? (
 						<IoStar
-							style={{
-								display: "block",
-								margin: 0,
-								padding: "28px",
-								// marginLeft: "28px",
-								color: theme.palette.textGray,
-							}} />
-					) : (
-						<IoStarOutline
 							onClick={() => {
 								console.log(params.row);
-								favoritHandler(params.row.id, !params.row.isFavorite);
+								favoriteHandler(params.row.id, params.row.isFavorite);
 							}}
 							style={{
 								width: "40px",
 								height: "40px",
 								margin: "0px 20px",
+								marginLeft: "auto",
+								padding: "10px 10px",
+								color: "#FFD700",
+								cursor: "pointer",
+							}} />
+					) : (
+						<IoStarOutline
+							onClick={() => {
+								console.log(params.row);
+								favoriteHandler(params.row.id, params.row.isFavorite);
+							}}
+							style={{
+								width: "40px",
+								height: "40px",
+								margin: "0px 20px",
+								marginLeft: "auto",
 								padding: "10px 10px",
 								color: theme.palette.textGray,
+								cursor: "pointer",
 							}} />
 					)}
-				</>
+				</Box>
 			)
-		},
+		}
+
 	]
 	if (!proxies) {
 		return <></>;
 	}
 	return (
 		<DataGrid
-			rows={proxies.map((proxy, index) => ({
+			rows={proxies.map((proxy, _) => ({
 				...proxy,
-				id: index,
 				isFavorite: favorits?.find((favorit) => favorit.proxy_id === proxy.id) ? true : false,
 			}))}
 			columns={columns}

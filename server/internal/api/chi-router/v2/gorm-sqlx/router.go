@@ -223,9 +223,9 @@ func (s *Server) Update(w http.ResponseWriter, r *http.Request) {
 func (s *Server) Delete(w http.ResponseWriter, r *http.Request) {
 	log := s.log.With("path", r.URL.Path, "method", r.Method)
 
-	userId := r.Context().Value("id").(int64)
+	id := r.Context().Value("id").(int64)
 
-	log.Info("params", slog.Int64("id", userId))
+	log.Info("params", slog.Int64("id", id))
 
 	inst := s.GetType(r.URL.Path)
 	if inst == nil {
@@ -239,8 +239,7 @@ func (s *Server) Delete(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}()
-	reflect.ValueOf(inst).Elem().Field(0).SetInt(userId)
-	err := s.storage.Delete(inst)
+	err := s.storage.Delete(inst, "id = ?", id)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

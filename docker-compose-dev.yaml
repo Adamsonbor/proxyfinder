@@ -79,6 +79,8 @@ services:
       - ./frontend:/app
     command: sh -c "yarn && yarn dev"
     restart: always
+    depends_on:
+      - api
   
   admin:
     image: node:20-alpine
@@ -90,3 +92,5 @@ services:
       - ./admin:/app
     command: sh -c "yarn && yarn dev"
     restart: always
+    depends_on:
+      - api

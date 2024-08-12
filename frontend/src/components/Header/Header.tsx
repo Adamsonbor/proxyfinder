@@ -1,10 +1,12 @@
-import { Container, Button, useTheme, Box } from "@mui/material";
+import { Container, Button, useTheme, Box, Menu, MenuItem } from "@mui/material";
 import { FcGoogle } from "react-icons/fc";
 import { SiMaildotru } from "react-icons/si";
 import { FaGithub } from "react-icons/fa";
 import { User } from "../../types";
 import UserBlock from "./UserBlock";
 import { useConfig } from "../../config";
+import { SetCookie } from "../../utils/utils";
+import { useRef, useState } from "react";
 
 interface Props {
 	// User or undefined
@@ -17,6 +19,9 @@ export default function Header({
 }: Props) {
 	const config = useConfig();
 	const theme = useTheme();
+
+	const [openUserMenu, setOpenUserMenu] = useState(false);
+	const menuButton = useRef(null);
 
 	function login() {
 		// redirect
@@ -93,7 +98,41 @@ export default function Header({
 							<FaGithub size={18} />
 						</Button>
 					</Box>}
-					{user && <UserBlock user={user} />}
+					{user &&
+						<Box>
+							<Button
+								sx={{
+									textTransform: "none",
+									color: theme.palette.textGray,
+								}}
+								ref={menuButton}
+								id="basic-button"
+								variant="text"
+								aria-controls={openUserMenu ? 'basic-menu' : undefined}
+								aria-haspopup="true"
+								aria-expanded={openUserMenu ? 'true' : undefined}
+								onClick={() => setOpenUserMenu(!openUserMenu)} >
+								<UserBlock user={user} />
+							</Button>
+							<Menu
+								anchorEl={menuButton.current}
+								open={openUserMenu}
+								onClose={() => setOpenUserMenu(false)}
+								MenuListProps={{
+									'aria-labelledby': 'basic-button',
+								}} >
+								<MenuItem
+									onClick={() => {
+										SetCookie("access_token", "", 0);
+										SetCookie("refresh_token", "", 0);
+										window.location.reload();
+									}} >
+									Logout
+								</MenuItem>
+
+							</Menu>
+						</Box>
+					}
 				</Box>
 			</Container>
 		</div>

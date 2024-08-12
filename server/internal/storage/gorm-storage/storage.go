@@ -28,6 +28,7 @@ func (s *Storage) Update(inst interface{}) (interface{}, error) {
 	return inst, s.db.Updates(inst).Error
 }
 
-func (s *Storage) Delete(inst interface{}) error {
-	return s.db.Delete(inst).Error
+// delete from table using inst fields
+func (s *Storage) Delete(inst interface{}, conds ...interface{}) error {
+	return s.db.Delete(inst, conds...).Error
 }

@@ -7,12 +7,13 @@ import (
 	"net/http"
 	"proxyfinder/internal/api"
 	"proxyfinder/internal/config"
-	gormstorage "proxyfinder/internal/storage/v2/gorm-sotrage"
+	"proxyfinder/internal/storage"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 var (
@@ -32,13 +33,13 @@ type JWTService struct {
 	secret      string
 	log         *slog.Logger
 	cfg         *config.Config
-	userStorage *gormstorage.Storage
+	userStorage storage.UserStorage
 }
 
 func NewJWTService(
 	log *slog.Logger,
 	cfg *config.Config,
-	userStorage *gormstorage.Storage,
+	userStorage storage.UserStorage,
 ) *JWTService {
 	return &JWTService{
 		secret:      cfg.JWT.Secret,
@@ -62,6 +63,7 @@ func (self *JWTService) GenerateAccessToken(userId int64) (string, error) {
 // Generate refresh token
 func (self *JWTService) GenerateRefreshToken() (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": uuid.New().String(),
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(self.cfg.JWT.RefreshTokenTTL).Unix(),
 	})
@@ -111,6 +113,7 @@ func (self *JWTService) JWTMiddleware(next http.Handler) http.Handler {
 			ReturnError(log, w, http.StatusUnauthorized, ErrMissingToken)
 			return
 		}
+		log.Debug("token string", slog.Any("token", tokenString))
 
 		token, err := self.ParseToken(tokenString)
 		if err != nil {
@@ -118,6 +121,7 @@ func (self *JWTService) JWTMiddleware(next http.Handler) http.Handler {
 			ReturnError(log, w, http.StatusUnauthorized, ErrInvalidToken)
 			return
 		}
+		log.Debug("token", slog.Any("token", token))
 
 		if !token.Valid {
 			log.Error("invalid")
@@ -131,11 +135,18 @@ func (self *JWTService) JWTMiddleware(next http.Handler) http.Handler {
 			ReturnError(log, w, http.StatusUnauthorized, ErrInvalidToken)
 			return
 		}
+		log.Debug("user_id", slog.Any("user_id", sUserId))
 
 		i64UserId, err := strconv.ParseInt(sUserId, 10, 64)
 		if err != nil {
 			log.Error("Atoi", slog.Any("err", err))
 			ReturnError(log, w, http.StatusInternalServerError, err)
+			return
+		}
+
+		if i64UserId == 0 {
+			log.Error("user_id is zero")
+			ReturnError(log, w, http.StatusUnauthorized, ErrInvalidToken)
 			return
 		}
 

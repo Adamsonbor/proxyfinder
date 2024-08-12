@@ -2,9 +2,16 @@ package storage
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"fmt"
 	"proxyfinder/internal/domain"
 
 	"github.com/jmoiron/sqlx"
+)
+
+var (
+	ErrRecordNotFound = fmt.Errorf("Recod not found")
 )
 
 type Options struct {
@@ -19,6 +26,14 @@ type ProxyUpdate struct {
 	ResponseTime *int64
 	StatusId     *int64
 	CountryId    *int64
+}
+
+type UserStorage interface {
+	Begin(ctx context.Context) (*sqlx.Tx, error)
+	GetBy(ctx context.Context, field string, value interface{}) (*domain.User, error)
+	Create(ctx context.Context, tx *sqlx.Tx, user *domain.User) (*domain.User, error)
+	GetByRefreshToken(ctx context.Context, refreshToken string) (*domain.User, error)
+	NewSession(ctx context.Context, tx *sqlx.Tx, user_id int64, refreshToken string) error
 }
 
 type ProxyStorage interface {
@@ -46,4 +61,11 @@ type CountryStorage interface {
 
 type StatusStorage interface {
 	SaveAll(ctx context.Context, insts []domain.Status) error
+}
+
+func ErrRecordNotFoundWrap(err error) error {
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrRecordNotFound
+	}
+	return err
 }

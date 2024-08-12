@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 )
 
@@ -23,4 +24,10 @@ func ReturnResponse(
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(res)
+}
+
+func ReturnError(log *slog.Logger, w http.ResponseWriter, statusCode int, err error) {
+	log.Error("error", slog.Any("error", err))
+	w.WriteHeader(statusCode)
+	ReturnResponse(w, "error", nil, err.Error())
 }

@@ -55,7 +55,7 @@ func main() {
 	rabbitService := rabbit.NewRabbit(cfg, "mail")
 
 	// INIT jwt
-	jwt := jwtservice.NewJWTService(log, cfg, storagev2)
+	jwt := jwtservice.NewJWTService(log, cfg, sqlxStorage.UserStorage)
 
 	// INIT router
 	mux := chi.NewMux()
@@ -64,7 +64,7 @@ func main() {
 	routerv1 := router.New(log, storage)
 	routerv2 := routerv2.New(log, storagev2, sqlxStorage, jwt)
 	routerRabbit := rabbitApi.New(log, rabbitService, cfg)
-	routerGoogle := googleapi.NewRouter(log, cfg, storagev2)
+	routerGoogle := googleapi.NewRouter(log, cfg, sqlxStorage.UserStorage)
 
 	// register routes
 	mux.Mount("/api/v1", routerv1.Router)

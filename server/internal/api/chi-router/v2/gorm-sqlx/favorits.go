@@ -2,8 +2,10 @@ package router
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"proxyfinder/internal/api"
 	"proxyfinder/internal/auth"
 	"proxyfinder/internal/domain"
 	gormstorage "proxyfinder/internal/storage/v2/gorm-sotrage"
@@ -11,16 +13,22 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+var (
+	ErrTypeAssertion = fmt.Errorf("Type assertion error")
+	ErrInvalidBody   = fmt.Errorf("Invalid body")
+	ErrInvalidParams = fmt.Errorf("Invalid params")
+)
+
+type FavoritsDTO struct {
+	UserId  int64 `json:"user_id"`
+	ProxyId int64 `json:"proxy_id"`
+}
+
 type FavoritsRouter struct {
 	log     *slog.Logger
 	storage *gormstorage.Storage
 	Router  *chi.Mux
 	jwt     auth.JWTService
-}
-
-type CreateFavoriteRequest struct {
-	UserId  int64
-	ProxyId int64
 }
 
 func NewFavoritsRouter(
@@ -39,11 +47,12 @@ func NewFavoritsRouter(
 	r.Route("/favorits", func(r chi.Router) {
 		r.Use(jwt.JWTMiddleware)
 		r.Route("/{id}", func(r chi.Router) {
+			r.Use(idPermissionMiddleware)
 			r.Delete("/", fr.DeleteFavorite)
 		})
 		r.Get("/", fr.GetFavorits)
+		r.Post("/", fr.CreateFavorite)
 	})
-	r.Post("/favorits", fr.CreateFavorite)
 
 	return fr
 }
@@ -51,18 +60,12 @@ func NewFavoritsRouter(
 func (self *FavoritsRouter) GetFavorits(w http.ResponseWriter, r *http.Request) {
 	log := self.log.With(slog.String("op", "FavoritsRouter.GetBy"))
 
-	userId, ok := r.Context().Value("user_id").(int64)
-	if !ok {
-		log.Error("get", slog.String("err", "user_id not found"))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	userId := r.Context().Value("user_id").(int64)
 
 	var favorits []domain.Favorits
-	err := self.storage.GetAllBy(&favorits, "userId", userId)
+	err := self.storage.GetAllBy(&favorits, "user_id", userId)
 	if err != nil {
-		log.Error("get", slog.String("err", err.Error()))
-		w.WriteHeader(http.StatusInternalServerError)
+		api.ReturnError(log, w, http.StatusInternalServerError, err)
 		return
 	}
 	log.Info("success", slog.Any("favorits", favorits))
@@ -74,11 +77,26 @@ func (self *FavoritsRouter) GetFavorits(w http.ResponseWriter, r *http.Request) 
 func (self *FavoritsRouter) CreateFavorite(w http.ResponseWriter, r *http.Request) {
 	log := self.log.With(slog.String("op", "FavoritsRouter.Create"))
 
-	var req CreateFavoriteRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
+	defer r.Body.Close()
+
+	var body domain.Favorits
+	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
-		log.Error("decode", slog.String("err", err.Error()))
-		w.WriteHeader(http.StatusBadRequest)
+		log.Debug("Decode body error")
+		api.ReturnError(log, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if body.UserId < 1 || body.ProxyId < 1 {
+		log.Debug("Invalid body", slog.Int64("userId", body.UserId), slog.Int64("proxyId", body.ProxyId))
+		api.ReturnError(log, w, http.StatusInternalServerError, ErrInvalidBody)
+		return
+	}
+
+	_, err = self.storage.Create(&body)
+	if err != nil {
+		log.Debug("storage create error", slog.Int64("user_id", body.UserId), slog.Int64("proxy_id", body.ProxyId))
+		api.ReturnError(log, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -88,12 +106,20 @@ func (self *FavoritsRouter) CreateFavorite(w http.ResponseWriter, r *http.Reques
 func (self *FavoritsRouter) DeleteFavorite(w http.ResponseWriter, r *http.Request) {
 	log := self.log.With(slog.String("op", "FavoritsRouter.Delete"))
 
-	id := r.Context().Value("id").(int64)
+	defer r.Body.Close()
 
-	err := self.storage.Delete(domain.Favorits{Id: id})
+	proxyId := r.Context().Value("id").(int64)
+	userId := r.Context().Value("user_id").(int64)
+	if proxyId < 1 || userId < 1 {
+		log.Debug("Invalid body", slog.Int64("userId", userId), slog.Int64("proxyId", proxyId))
+		api.ReturnError(log, w, http.StatusInternalServerError, ErrInvalidParams)
+		return
+	}
+
+	err := self.storage.Delete(&domain.Favorits{}, "proxy_id = ?", proxyId, "user_id = ?", userId)
 	if err != nil {
-		log.Error("delete", slog.String("err", err.Error()))
-		w.WriteHeader(http.StatusInternalServerError)
+		log.Debug("storage delete error", slog.Int64("user_id", userId), slog.Int64("proxy_id", proxyId))
+		api.ReturnError(log, w, http.StatusInternalServerError, err)
 		return
 	}
 
