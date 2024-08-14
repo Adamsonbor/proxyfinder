@@ -10,6 +10,6 @@ export class ProxyV2Repo {
 	}
 
 	async GetAll(): Promise<ProxyV2[]> {
-		return this._repo.Get("?perPage=7000", {}, true).then((res) => res.data as ProxyV2[])
+		return this._repo.Get("?perPage=7000", {}, false).then((res) => res.data as ProxyV2[])
 	}
 }

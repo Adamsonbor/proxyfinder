@@ -3,51 +3,28 @@ services:
     restart: always
     build: ./server/
     container_name: proxyfinder-api
-    command: bash -c "
-      cd /app && \
-      build/api --config /app/config/prod.yaml >> /app/logs/prod.log"
+    command: bash -c " cd /app && make up-api"
     volumes:
       - ./server/config:/app/config
       - ./server/storage:/app/storage
       - ./server/build:/app/build
+      - ./server/Makefile:/app/Makefile
       - ./logs/api:/app/logs
     ports:
       - 8080:8080
     depends_on:
       migrate:
         condition: service_completed_successfully
-      rabbit:
-        condition: service_healthy
-
-  rabbit:
-    image: rabbitmq:3.13-alpine
-    container_name: proxyfinder-rabbit
-    volumes:
-      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:rw
-    environment:
-      - RABBITMQ_DEFAULT_USER=$RABBITMQ_DEFAULT_USER
-      - RABBITMQ_DEFAULT_PASS=$RABBITMQ_DEFAULT_PASS
-    ports:
-      - 5672:5672
-      - 15672:15672
-    healthcheck:
-      test: rabbitmq-diagnostics -q ping
-      start_period: 5s
-      interval: 10s
-      timeout: 10s
-      retries: 5
-    restart: always
 
   scheduler:
     build: ./server/
     container_name: proxyfinder-scheduler
-    command: bash -c "
-      cd /app && \
-      build/scheduler --config /app/config/prod.yaml >> /app/logs/prod.log"
+    command: bash -c " cd /app && make up-scheduler"
     volumes:
       - ./server/config:/app/config
       - ./server/storage:/app/storage
       - ./server/build:/app/build
+      - ./server/Makefile:/app/Makefile
       - ./logs/scheduler:/app/logs
     depends_on:
       migrate:
@@ -56,15 +33,13 @@ services:
   migrate:
     build: ./server/
     container_name: proxyfinder-migrate
-    command: bash -c "
-      cd /app && \
-      build/goose -dir migrations/goose sqlite3 ./storage/prod.db up && \
-      build/initdb --dir migrations/init/geonode --db ./storage/prod.db up"
+    command: bash -c "cd /app && make migrate"
     volumes:
       - ./server/storage:/app/storage
       - ./server/build:/app/build
       - ./server/migrations:/app/migrations/
       - ./server/config:/app/config
+      - ./server/Makefile:/app/Makefile
 
   frontend:
     image: nginx:1.26-alpine

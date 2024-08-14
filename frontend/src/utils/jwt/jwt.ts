@@ -15,10 +15,10 @@ export class Jwt {
 	}
 
 	// Get new access token with refresh tokena using refresh token
-	public async updateTokens() {
+	public async updateTokens(): Promise<void> {
 		const refresh_token = this.refresh_token;
 		if (refresh_token === "") {
-			throw new Error("No refresh token");
+			return Promise.reject("No refresh token");
 		}
 
 		await fetch(`${this._config.server.url}/auth/google/refresh?refresh_token=${refresh_token}`)
@@ -26,7 +26,7 @@ export class Jwt {
 				if (res.ok) {
 					return res.json()
 				}
-				throw new Error("Failed to refresh access token");
+				return Promise.reject("No refresh token");
 			})
 			.then((data: IApiData) => data.data as RefreshResponse)
 			.then((data: RefreshResponse) => {
@@ -34,12 +34,11 @@ export class Jwt {
 				this.setCookie("access_token", data.access_token, data.expires_in);
 				this.setCookie("refresh_token", data.refresh_token, 1 * 24 * 60 * 60);
 			})
-			.catch((err) => console.error(err));
 	}
 
 	// Get access token if it exists
 	// Else get access token with refresh token
-	// Else throw error
+	// Else return empty string
 	public async getAccessToken(): Promise<string> {
 		let access_token = this.access_token;
 		if (access_token !== "") {
@@ -52,10 +51,6 @@ export class Jwt {
 		.then(() => {
 			return this.access_token
 		})
-		.catch((err) => {
-			console.error(err);
-			throw new Error("No access token");
-		});
 	}
 
 	public get access_token(): string {

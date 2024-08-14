@@ -1,6 +1,6 @@
 import "/node_modules/flag-icons/css/flag-icons.min.css";
 import { useEffect, useState } from 'react'
-import { Container, ThemeProvider } from '@mui/material'
+import { Container, Snackbar, ThemeProvider } from '@mui/material'
 import InfiniteTable from '../components/Table/InfiniteTable';
 import LeftPanel from '../components/LeftPanel/LeftPanel';
 import { useConfig } from '../config';
@@ -23,20 +23,24 @@ export default function HomePage() {
 	const [fullProxies, setFullProxies] = useState<ProxyRow[]>([]);
 	const [favorits, setFavorits] = useState<Favorits[]>([])
 	const [user, setUser] = useState<User | undefined>(undefined);
+	const [openNotification, setOpenNotification] = useState(false);
 
 	useEffect(() => {
 		proxyRepo.GetAll().then((proxies) => {
 			setProxies(proxies.map(proxyV2ToProxyRow));
 			setFullProxies(proxies.map(proxyV2ToProxyRow));
 		})
+			.catch((err) => console.log(err));
 
 		favoritsRepo.GetAll().then((favorits) => {
 			setFavorits(favorits);
 		})
+			.catch((err) => console.log(err));
 
 		userRepo.Get().then((user) => {
 			setUser(user);
 		})
+			.catch((err) => console.log(err));
 	}, []);
 
 	const body = document.getElementsByTagName('body')[0];
@@ -64,6 +68,12 @@ export default function HomePage() {
 								className="col-10" />
 						</div>
 					</div>
+					<Snackbar
+						anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+						autoHideDuration={3000}
+						open={openNotification}
+						onClose={() => setOpenNotification(false)}
+						message="Login required" />
 				</Container>
 			</ThemeProvider>
 		</>
@@ -72,12 +82,18 @@ export default function HomePage() {
 	// 
 	async function favoriteHandler(proxyId: number, isFavorite: boolean) {
 		if (!user) {
-			await userRepo.Get().then(user => setUser(user))
-			if (!user) { console.error("Error getting user from server"); return }
+			await userRepo.Get()
+				.then(user => setUser(user))
+				.catch((err) => {
+					setOpenNotification(true)
+					console.log(err)
+				})
+			if (!user) { return }
+
 		}
 		if (isFavorite) {
-			await favoritsRepo.Delete(proxyId);
-			setFavorits(favorits.filter((favorit) => favorit.proxy_id !== proxyId));
+			await favoritsRepo.Delete(proxyId)
+				.then(() => setFavorits(favorits.filter((favorit) => favorit.proxy_id !== proxyId)))
 		} else {
 			await favoritsRepo.Create(user!.id, proxyId)
 				.then((data: IApiData) => setFavorits([...favorits, data.data]))

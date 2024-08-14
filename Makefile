@@ -1,3 +1,7 @@
+ifneq (,$(wildcard ./.env))
+include .env
+export
+endif
 
 SERVER_DIR = ./server
 SERVER_BUILD_DIR = ${SERVER_DIR}/build
@@ -81,5 +85,10 @@ prod: re
 apache-bench:
 	ab -c 100 -n 10000 http://127.0.0.1:8080/api/v1/proxy
 
+twcopy:
+	cp .env prod
+	tar -czf prod.tar.gz prod
+	scp prod.tar.gz $(TIMEWEB):/root/
 
-.PHONY:up down apache-bench build prod
+
+.PHONY:up down apache-bench build prod clean re

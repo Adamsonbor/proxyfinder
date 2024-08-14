@@ -1,15 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 	googleapi "proxyfinder/internal/api/chi-router/auth/google"
-	rabbitApi "proxyfinder/internal/api/chi-router/rabbit"
+	// rabbitApi "proxyfinder/internal/api/chi-router/rabbit"
 	router "proxyfinder/internal/api/chi-router/v1/gorm"
 	routerv2 "proxyfinder/internal/api/chi-router/v2/gorm-sqlx"
 	jwtservice "proxyfinder/internal/auth/jwt"
-	"proxyfinder/internal/broker/rabbit"
+	// "proxyfinder/internal/broker/rabbit"
 	"proxyfinder/internal/config"
 	"proxyfinder/internal/logger"
 	gormstoragev1 "proxyfinder/internal/storage/gorm-storage"
@@ -26,13 +25,10 @@ func main() {
 
 	// INIT config
 	cfg := config.MustLoadConfig()
-	fmt.Println(cfg)
 
 	// INIT logger
 	log := logger.New(cfg.Env)
 	log.Info("Initializing with env: " + cfg.Env)
-
-	// INIT gorm sqlite
 	db, err := gorm.Open(sqlite.Open(cfg.Database.Path), &gorm.Config{})
 	if err != nil {
 		panic(err)
@@ -52,7 +48,7 @@ func main() {
 	sqlxStorage := sqlxstorage.New(sqlxdb)
 
 	// // INIT rabbitmq
-	rabbitService := rabbit.NewRabbit(cfg, "mail")
+	// rabbitService := rabbit.NewRabbit(cfg, "mail")
 
 	// INIT jwt
 	jwt := jwtservice.NewJWTService(log, cfg, sqlxStorage.UserStorage)
@@ -63,13 +59,13 @@ func main() {
 	// INIT routers
 	routerv1 := router.New(log, storage)
 	routerv2 := routerv2.New(log, storagev2, sqlxStorage, jwt)
-	routerRabbit := rabbitApi.New(log, rabbitService, cfg)
+	// routerRabbit := rabbitApi.New(log, rabbitService, cfg)
 	routerGoogle := googleapi.NewRouter(log, cfg, sqlxStorage.UserStorage)
 
 	// register routes
 	mux.Mount("/api/v1", routerv1.Router)
 	mux.Mount("/api/v2", routerv2.Router)
-	mux.Mount("/rabbit", routerRabbit.Router)
+	// mux.Mount("/rabbit", routerRabbit.Router)
 	mux.Mount("/auth/google", routerGoogle.Router)
 
 	// print routes

@@ -1,8 +1,3 @@
-// в больницу 16:15 7 августа.
-// забрать направление на киртбая 12.
-// мрт на набережке.
-// 8 августа 12:00 экг и невролог.
-
 TODO:
 	server:
 		- add email notifier service that will send email with available favorites
@@ -17,15 +12,16 @@ TODO:
 
 IN PROGRESS:
 	frontend:
-		- fix token usage, use refresh token if access token is expired
 		- fix login (add login button on header that should open a modal widow
 			which contains oauth2.0 buttons)
 	server:
-		- add GetUserByRefreshToken function that will return user by refresh token
-			to userStorage
+		- change all gorm storage to sqlx
 
 DONE:
 	frontend:
+		- add Login required popup on favorite buttons
+		- add Repository class to make api calls
+		- fix token usage, use refresh token if access token is expired
 		- add onclick event on table row to
 			change favorite state and send request to backend
 		- add permission for setting favorits 
@@ -37,6 +33,8 @@ DONE:
 		- add Github icon to header for auth (soon)
 		- add Mail.ru icon to header for auth (soon)
 	server:
+		- add GetUserByRefreshToken function that will return user by refresh token
+			to userStorage
 		- fix gorm delete method
 		- fix favorits endpoint
 		- add UserStorage interface
@@ -51,5 +49,7 @@ DONE:
 		- add User table in db to store user info (email, name, id)
 		- add User storage (gorm) to store user info
 
+	- fix dotenv usage  (delete dotenv from frontend and admin 
+		and add env variables to dotenv in root folder)
 	- add Session table to associate jwt with user
 	- fix apps cofigurations structure

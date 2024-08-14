@@ -14,22 +14,6 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-      rabbit:
-        condition: service_healthy
-    restart: always
-
-  rabbit:
-    image: rabbitmq:3.13-management-alpine
-    container_name: proxyfinder-rabbit-dev
-    ports:
-      - 5672:5672
-      - 15672:15672
-    healthcheck:
-      test: rabbitmq-diagnostics -q ping
-      start_period: 5s
-      interval: 10s
-      timeout: 10s
-      retries: 5
     restart: always
 
   scheduler:
@@ -45,25 +29,11 @@ services:
         condition: service_completed_successfully
     restart: always
 
-  # mail:
-  #   image: golang:1.22
-  #   container_name: proxyfinder-mail-dev
-  #   command: sh -c "cd /app && make up-mail-dev"
-  #   volumes:
-  #     - ./server:/app
-  #     - $GOPATH/pkg/mod:/go/pkg/mod
-  #     - $GOPATH/bin:/go/bin
-  #   depends_on:
-  #     rabbit:
-  #       condition: service_healthy
 
   migrate:
     image: golang:1.22
     container_name: proxyfinder-migrate-dev
-    # command: bash -c "
-    #   cd /app && \
-    #   go run cmd/goose/main.go --dir migrations/goose sqlite3 storage/local.db up && \
-    #   go run cmd/initdb/main.go --dir migrations/init/geonode --db storage/local.db up"
+    command: bash -c " cd /app && make migrate-dev"
     volumes:
       - ./server:/app
       - $GOPATH/pkg/mod:/go/pkg/mod
