@@ -36,13 +36,6 @@ type GoogleAuth struct {
 	RedirectUrl  string         `yaml:"redirect_url" required:"true"`
 	Scope        []string       `yaml:"scope" required:"true"`
 	RedirectTo   string         `yaml:"redirect_to" required:"true"`
-	Endpoint     GoogleEndpoint `yaml:"endpoint" required:"true"`
-}
-
-type GoogleEndpoint struct {
-	AuthUrl  string `yaml:"auth_url" required:"true"`
-	TokenUrl string `yaml:"token_url" required:"true"`
-	UserInfo string `yaml:"userinfo_url" default:"https://www.googleapis.com/oauth2/v3/userinfo"`
 }
 
 type JWT struct {

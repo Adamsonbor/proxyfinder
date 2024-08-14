@@ -3,16 +3,20 @@ import { useEffect, useState } from 'react'
 import { Container, ThemeProvider } from '@mui/material'
 import InfiniteTable from '../components/Table/InfiniteTable';
 import LeftPanel from '../components/LeftPanel/LeftPanel';
-import { ConfigProvider, useConfig } from '../config';
-import { Country, Favorits, ProxyRow, ProxyV2, User } from '../types';
+import { useConfig } from '../config';
+import { Favorits, ProxyRow, ProxyV2, User } from '../types';
 import { lightTheme } from '../theme';
 import Header from '../components/Header/Header';
-import { useApiV2 } from '../utils/api/apiv2';
-import { GetCookie } from "../utils/utils";
+import { FavoritsRepo } from "../repos/favorits/repo";
+import { ProxyV2Repo } from "../repos/proxy/repo";
+import { UserRepo } from "../repos/user/repo";
 import { IApiData } from "../utils/api/api";
 
 export default function HomePage() {
 	const config = useConfig();
+	const userRepo = new UserRepo(config);
+	const proxyRepo = new ProxyV2Repo(config);
+	const favoritsRepo = new FavoritsRepo(config);
 
 	const [theme, setTheme] = useState(lightTheme);
 	const [proxies, setProxies] = useState<ProxyRow[]>([]);
@@ -20,143 +24,83 @@ export default function HomePage() {
 	const [favorits, setFavorits] = useState<Favorits[]>([])
 	const [user, setUser] = useState<User | undefined>(undefined);
 
-	let countries: Country[] = [];
-	let proxiesData: ProxyV2[] = useApiV2(`/proxy?perPage=7000`).data;
-	let favoritsData: Favorits[] = [];
-	const accessToken: string | null = GetCookie("access_token")
-	if (accessToken) {
-		favoritsData = useApiV2(`/favorits`, accessToken).data;
-	}
-
 	useEffect(() => {
-		if (proxiesData) {
-			setProxies(proxiesData.map(proxyV2ToProxyRow));
-			setFullProxies(proxiesData.map(proxyV2ToProxyRow));
-			setFavorits(favoritsData);
-			UserInfo();
-			countries = proxiesData.map(proxy => proxy.country);
-		}
-	}, [proxiesData]);
+		proxyRepo.GetAll().then((proxies) => {
+			setProxies(proxies.map(proxyV2ToProxyRow));
+			setFullProxies(proxies.map(proxyV2ToProxyRow));
+		})
+
+		favoritsRepo.GetAll().then((favorits) => {
+			setFavorits(favorits);
+		})
+
+		userRepo.Get().then((user) => {
+			setUser(user);
+		})
+	}, []);
 
 	const body = document.getElementsByTagName('body')[0];
 	body.style.backgroundColor = theme.palette.backgroundWhite;
 
 	return (
 		<>
-			<ConfigProvider>
-				<ThemeProvider theme={theme} >
-					<Container maxWidth="xl" sx={{ color: theme.palette.textBlack }}>
-						<div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }} >
-							<Header
-								user={user}
-								setModalOpen={() => { }} />
-							<div className="row pt-5">
-								<LeftPanel
-									proxies={fullProxies}
-									setProxies={setProxies}
-									theme={theme}
-									setTheme={setTheme}
-									className="col-2" />
-								<InfiniteTable
-									proxies={proxies}
-									favorits={favorits}
-									favoriteHandler={favoriteHandler}
-									className="col-10" />
-							</div>
+			<ThemeProvider theme={theme}>
+				<Container maxWidth="xl" sx={{ color: theme.palette.textBlack }}>
+					<div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }} >
+						<Header
+							user={user}
+							setModalOpen={() => { }} />
+						<div className="row pt-5">
+							<LeftPanel
+								proxies={fullProxies}
+								setProxies={setProxies}
+								theme={theme}
+								setTheme={setTheme}
+								className="col-2" />
+							<InfiniteTable
+								proxies={proxies}
+								favorits={favorits}
+								favoriteHandler={favoriteHandler}
+								className="col-10" />
 						</div>
-					</Container>
-				</ThemeProvider>
-			</ConfigProvider>
+					</div>
+				</Container>
+			</ThemeProvider>
 		</>
 	);
 
-	function favoriteHandler(proxyId: number, isFavorite: boolean) {
+	// 
+	async function favoriteHandler(proxyId: number, isFavorite: boolean) {
 		if (!user) {
-			return;
+			await userRepo.Get().then(user => setUser(user))
+			if (!user) { console.error("Error getting user from server"); return }
 		}
-		console.log(proxyId, isFavorite);
 		if (isFavorite) {
-			fetch(`${config.server.apiV2Url}/favorits/${proxyId}`, {
-				method: "DELETE",
-				headers: {
-					"Authorization": `Bearer ${GetCookie("access_token")}`,
-				}
-			})
-				.then(res => {
-					if (res.status === 200) {
-						setFavorits(favorits.filter(favorit => favorit.proxy_id !== proxyId))
-					}
-				})
-				.catch(err => console.log(err));
+			await favoritsRepo.Delete(proxyId);
+			setFavorits(favorits.filter((favorit) => favorit.proxy_id !== proxyId));
 		} else {
-			fetch(`${config.server.apiV2Url}/favorits`, {
-				method: "POST",
-				headers: {
-					"Authorization": `Bearer ${GetCookie("access_token")}`,
-				},
-				body: JSON.stringify({
-					user_id: user.id,
-					proxy_id: proxyId,
-				})
-			})
-				.then(res => {
-					if (res.status === 200) {
-						setFavorits([...favorits, {
-							id: 0,
-							user_id: user.id,
-							proxy_id: proxyId,
-							created_at: "",
-							updated_at: "",
-						}])
-					}
-				})
-				.catch(err => console.log(err));
+			await favoritsRepo.Create(user!.id, proxyId)
+				.then((data: IApiData) => setFavorits([...favorits, data.data]))
+				.catch((err) => console.log(err))
 		}
 	}
+}
 
-	function UserInfo() {
-		const access_token = GetCookie("access_token");
-
-		if (!access_token) {
-			return
-		}
-
-		fetch(
-			`${config.server.apiV2Url}/user`,
-			{
-				method: "GET",
-				headers: {
-					"Authorization": `Bearer ${access_token}`,
-				}
-			})
-			.then(res => res.json())
-			.then((apiData: IApiData) => {
-				if (apiData.data) {
-					setUser(apiData.data)
-				} else {
-					console.log(apiData.error)
-				}
-			})
-			.catch(err => console.log(err));
-	}
-
-
-	function proxyV2ToProxyRow(proxy: ProxyV2): ProxyRow {
-		return {
-			id: proxy.id,
-			ip: proxy.ip,
-			port: proxy.port,
-			protocol: proxy.protocol,
-			response_time: proxy.response_time,
-			status_id: proxy.status.id,
-			country_id: proxy.country.id,
-			created_at: proxy.created_at,
-			updated_at: proxy.updated_at,
-			status: proxy.status.name,
-			country_code: proxy.country.code,
-			country_name: proxy.country.name,
-			created_at_formatted: new Date(proxy.created_at),
-			updated_at_formatted: new Date(proxy.updated_at),
-		}
+function proxyV2ToProxyRow(proxy: ProxyV2): ProxyRow {
+	return {
+		id: proxy.id,
+		ip: proxy.ip,
+		port: proxy.port,
+		protocol: proxy.protocol,
+		response_time: proxy.response_time,
+		status_id: proxy.status.id,
+		country_id: proxy.country.id,
+		created_at: proxy.created_at,
+		updated_at: proxy.updated_at,
+		status: proxy.status.name,
+		country_code: proxy.country.code,
+		country_name: proxy.country.name,
+		created_at_formatted: new Date(proxy.created_at),
+		updated_at_formatted: new Date(proxy.updated_at),
 	}
 }

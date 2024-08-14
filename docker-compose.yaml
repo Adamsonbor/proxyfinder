@@ -1,34 +1,58 @@
 services:
   api:
+    restart: always
     build: ./server/
     container_name: proxyfinder-api
-    command: bash -c " 
+    command: bash -c "
       cd /app && \
-      build/api --config /app/config/prod.yaml"
+      build/api --config /app/config/prod.yaml >> /app/logs/prod.log"
     volumes:
       - ./server/config:/app/config
       - ./server/storage:/app/storage
       - ./server/build:/app/build
+      - ./logs/api:/app/logs
     ports:
       - 8080:8080
     depends_on:
       migrate:
         condition: service_completed_successfully
+      rabbit:
+        condition: service_healthy
+
+  rabbit:
+    image: rabbitmq:3.13-alpine
+    container_name: proxyfinder-rabbit
+    volumes:
+      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:rw
+    environment:
+      - RABBITMQ_DEFAULT_USER=$RABBITMQ_DEFAULT_USER
+      - RABBITMQ_DEFAULT_PASS=$RABBITMQ_DEFAULT_PASS
+    ports:
+      - 5672:5672
+      - 15672:15672
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      start_period: 5s
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: always
 
   scheduler:
     build: ./server/
     container_name: proxyfinder-scheduler
-    command: bash -c " 
+    command: bash -c "
       cd /app && \
-      build/scheduler --config /app/config/prod.yaml"
+      build/scheduler --config /app/config/prod.yaml >> /app/logs/prod.log"
     volumes:
       - ./server/config:/app/config
       - ./server/storage:/app/storage
       - ./server/build:/app/build
+      - ./logs/scheduler:/app/logs
     depends_on:
       migrate:
         condition: service_completed_successfully
-  
+
   migrate:
     build: ./server/
     container_name: proxyfinder-migrate
@@ -52,3 +76,7 @@ services:
       - ./frontend/dist:/app/frontend/dist
       - ./admin/dist:/app/admin/dist
       - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./logs/frontend:/var/log/nginx
+    restart: always
+    depends_on:
+      - api

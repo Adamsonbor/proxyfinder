@@ -124,7 +124,7 @@ export default function SearchMultipleAutocomplete({
 							padding: '8px 16px',
 							display: 'flex',
 							alignItems: 'center',
-							color: theme.palette.text.lightBlue,
+							color: theme.palette.lightBlue,
 						}}
 						key={option}
 						onClick={() => { handleSelect(option) }}>

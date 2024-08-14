@@ -22,6 +22,12 @@ import (
 	"google.golang.org/api/people/v1"
 )
 
+type RefreshResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int64  `json:"expires_in"`
+}
+
 type Router struct {
 	log         *slog.Logger
 	cfg         *config.Config
@@ -76,27 +82,25 @@ func NewRouter(
 	r.Get("/callback", router.Callback)
 
 	// get refresh token from query params and create new jwt pair (access_token, refresh_token)
+	// and set it in cookie
 	r.Get("/refresh", router.Refresh)
 
 	return router
 }
 
+// Get refresh token from query params and create new jwt pair (access_token, refresh_token)
+// and return it in json
 func (self *Router) Refresh(w http.ResponseWriter, r *http.Request) {
 	log := self.log.With(slog.String("op", "GoogleAuth.Refresh"))
 
 	refreshToken := r.URL.Query().Get("refresh_token")
-	if refreshToken == "" {
-		log.Debug("refresh token is empty")
-		ReturnError(log, w, http.StatusBadRequest, errors.New("refresh token is empty"))
-		return
-	}
-
 	err := self.jwt.ValidateToken(refreshToken)
 	if err != nil {
 		log.Debug("validate token error", slog.Any("error", err))
 		ReturnError(log, w, http.StatusUnauthorized, err)
 		return
 	}
+	log.Debug("token is valid")
 
 	user, err := self.userStorage.GetByRefreshToken(r.Context(), refreshToken)
 	if err != nil {
@@ -104,15 +108,47 @@ func (self *Router) Refresh(w http.ResponseWriter, r *http.Request) {
 		ReturnError(log, w, http.StatusUnauthorized, err)
 		return
 	}
+	log.Debug("user", slog.Any("user", user))
 
-	err = self.GenerateAndSetCoockies(w, r, user)
+	access, refresh, err := self.GenerateTokens(user)
 	if err != nil {
-		log.Debug("generate tokens and set cookies error", slog.Any("error", err))
+		log.Debug("generate tokens error", slog.Any("error", err))
 		ReturnError(log, w, http.StatusUnauthorized, err)
 		return
 	}
+	log.Debug("tokens", slog.Any("access", access), slog.Any("refresh", refresh))
 
-	w.WriteHeader(http.StatusOK)
+	ctx, cancel := context.WithTimeout(context.Background(), self.cfg.Database.Timeout)
+	defer cancel()
+
+	tx, err := self.userStorage.Begin(ctx)
+	if err != nil {
+		log.Debug("begin tx error", slog.Any("error", err))
+		ReturnError(log, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = self.userStorage.NewSession(ctx, tx, user.Id, refresh)
+	if err != nil {
+		log.Debug("new session error", slog.Any("error", err))
+		ReturnError(log, w, http.StatusInternalServerError, err)
+		return
+	}	
+
+	err = tx.Commit()
+	if err != nil {
+		log.Debug("commit tx error", slog.Any("error", err))
+		ReturnError(log, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	res := &RefreshResponse{
+		AccessToken:  access,
+		RefreshToken: refresh,
+		ExpiresIn:    int64(self.cfg.JWT.AccessTokenTTL.Seconds()),
+	}
+
+	api.ReturnResponse(w, "success", res, "")
 }
 
 func (self *Router) Login(w http.ResponseWriter, r *http.Request) {
@@ -224,14 +260,12 @@ func (self *Router) setCookies(w http.ResponseWriter, accessToken string, refres
 		Name:    "access_token",
 		Value:   accessToken,
 		Expires: time.Now().Add(self.cfg.JWT.AccessTokenTTL),
-		MaxAge:  int(self.cfg.JWT.AccessTokenTTL.Seconds()),
 		Path:    "/",
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:    "refresh_token",
 		Value:   refreshToken,
 		Expires: time.Now().Add(self.cfg.JWT.RefreshTokenTTL),
-		MaxAge:  int(self.cfg.JWT.RefreshTokenTTL.Seconds()),
 		Path:    "/",
 	})
 }

@@ -25,7 +25,7 @@ export default function Header({
 
 	function login() {
 		// redirect
-		window.location.href = `${config.serverUrl}/auth/google/login`;
+		window.location.href = `${config.server.url}/auth/google/login`;
 	}
 
 	return (

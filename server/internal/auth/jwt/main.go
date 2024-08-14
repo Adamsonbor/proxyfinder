@@ -62,8 +62,12 @@ func (self *JWTService) GenerateAccessToken(userId int64) (string, error) {
 
 // Generate refresh token
 func (self *JWTService) GenerateRefreshToken() (string, error) {
+	key, err := uuid.NewV7()
+	if err != nil {
+		return "", err
+	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": uuid.New().String(),
+		"sub": key.String(),
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(self.cfg.JWT.RefreshTokenTTL).Unix(),
 	})

@@ -93,14 +93,22 @@ func (self *FavoritsRouter) CreateFavorite(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	_, err = self.storage.Create(&body)
+	inst, err := self.storage.Create(&body)
 	if err != nil {
 		log.Debug("storage create error", slog.Int64("user_id", body.UserId), slog.Int64("proxy_id", body.ProxyId))
 		api.ReturnError(log, w, http.StatusInternalServerError, err)
 		return
 	}
 
-	JSONResponse(w, "success", nil, err)
+	newValue, ok := inst.(*domain.Favorits)
+	if !ok {
+		log.Debug("Type assertion error")
+		api.ReturnError(log, w, http.StatusInternalServerError, ErrTypeAssertion)
+		return
+	}
+	log.Debug("success", slog.Any("favorit", newValue))
+
+	JSONResponse(w, "success", newValue, err)
 }
 
 func (self *FavoritsRouter) DeleteFavorite(w http.ResponseWriter, r *http.Request) {

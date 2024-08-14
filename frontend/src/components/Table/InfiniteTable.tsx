@@ -109,7 +109,7 @@ export default function InfiniteTable({
 		{
 			field: 'isFavorite',
 			headerName: 'FAVORITE',
-			minWidth: 50,
+			minWidth: 100,
 			flex: 0.5,
 			renderCell: (params: any) => (
 				<Box
@@ -118,12 +118,11 @@ export default function InfiniteTable({
 						flexDirection: "row",
 						justifyContent: "right",
 						alignItems: "center",
-						height: "100%",
 					}}>
 					{params.row.isFavorite ? (
 						<IoStar
 							onClick={() => {
-								console.log(params.row);
+								// console.log(params.row);
 								favoriteHandler(params.row.id, params.row.isFavorite);
 							}}
 							style={{
@@ -138,7 +137,7 @@ export default function InfiniteTable({
 					) : (
 						<IoStarOutline
 							onClick={() => {
-								console.log(params.row);
+								// console.log(params.row);
 								favoriteHandler(params.row.id, params.row.isFavorite);
 							}}
 							style={{
@@ -163,7 +162,7 @@ export default function InfiniteTable({
 		<DataGrid
 			rows={proxies.map((proxy, _) => ({
 				...proxy,
-				isFavorite: favorits?.find((favorit) => favorit.proxy_id === proxy.id) ? true : false,
+				isFavorite: favorits?.find((favorit) => favorit?.proxy_id === proxy?.id) ? true : false,
 			}))}
 			columns={columns}
 			autoHeight

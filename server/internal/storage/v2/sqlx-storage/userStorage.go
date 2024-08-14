@@ -27,6 +27,13 @@ func (self *UserStorage) NewSession(ctx context.Context, tx *sqlx.Tx, user_id in
 	return err
 }
 
+func (self *UserStorage) UpdateSession(ctx context.Context, tx *sqlx.Tx, user_id int64, refreshToken string) error {
+	query := "UPDATE session SET token = ? WHERE user_id = ?"
+
+	_, err := self.db.ExecContext(ctx, query, refreshToken, user_id)
+	return err
+}
+
 func (self *UserStorage) Create(ctx context.Context, tx *sqlx.Tx, user *domain.User) (*domain.User, error) {
 	query := "INSERT INTO user (email, name, photo_url, phone, date_of_birth) VALUES (?, ?, ?, ?, ?)"
 
@@ -54,7 +61,7 @@ func (self *UserStorage) GetBy(ctx context.Context, field string, value interfac
 }
 
 func (self *UserStorage) GetByRefreshToken(ctx context.Context, refreshToken string) (*domain.User, error) {
-	query := "SELECT * FROM user as u WHERE s.refresh_token = ? JOIN session as s ON u.id = s.user_id"
+	query := "SELECT u.* FROM user as u JOIN session as s ON u.id = s.user_id WHERE s.token = ?"
 
 	var user domain.User
 	err := self.db.GetContext(ctx, &user, query, refreshToken)

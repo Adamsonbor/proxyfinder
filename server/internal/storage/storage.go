@@ -33,6 +33,7 @@ type UserStorage interface {
 	GetBy(ctx context.Context, field string, value interface{}) (*domain.User, error)
 	Create(ctx context.Context, tx *sqlx.Tx, user *domain.User) (*domain.User, error)
 	GetByRefreshToken(ctx context.Context, refreshToken string) (*domain.User, error)
+	UpdateSession(ctx context.Context, tx *sqlx.Tx, user_id int64, refreshToken string) error
 	NewSession(ctx context.Context, tx *sqlx.Tx, user_id int64, refreshToken string) error
 }
 

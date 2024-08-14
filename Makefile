@@ -25,7 +25,7 @@ endef
 
 # docker
 up:
-	docker-compose up -d
+	docker-compose up
 
 down:
 	docker-compose down --remove-orphans
@@ -74,6 +74,7 @@ prod: re
 	cp -r ./nginx.conf prod
 	cp -r ./docker-compose.yaml prod
 	cp -r ./Makefile prod
+	cp -r ./rabbitmq.conf prod
 	tar -czf prod.tar.gz prod
 
 # bench

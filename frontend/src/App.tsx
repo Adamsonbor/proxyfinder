@@ -2,9 +2,12 @@ import './App.css';
 
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
+import { ConfigProvider } from './config';
 
 export default function App() {
 	return (
-		<RouterProvider router={router} />
+		<ConfigProvider>
+			<RouterProvider router={router} />
+		</ConfigProvider>
 	);
 }

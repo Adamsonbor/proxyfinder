@@ -68,13 +68,15 @@ func (s *Scheduler) Run() {
 
 	signal.Notify(s.stopChan, os.Interrupt)
 
-	ticker := time.NewTicker(s.cfg.Scheduler.Interval)
-
 	ctx, cancel := context.WithTimeout(context.Background(), s.cfg.Scheduler.Timeout)
 	defer cancel()
 	if s.cfg.Scheduler.StartImmediately {
 		s.Refresh(ctx)
 	}
+
+	// Refreshing every hour
+	ticker := time.NewTicker(s.cfg.Scheduler.Interval)
+	defer ticker.Stop()
 
 	select {
 	case <-s.stopChan:
