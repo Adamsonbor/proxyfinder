@@ -6,62 +6,79 @@ import (
 	"errors"
 	"fmt"
 	"proxyfinder/internal/domain"
+	"proxyfinder/internal/storage/dto"
 
 	"github.com/jmoiron/sqlx"
 )
 
 var (
 	ErrRecordNotFound = fmt.Errorf("Recod not found")
+	ErrEmptyOptions   = fmt.Errorf("Empty options")
+	ErrInvalidId      = fmt.Errorf("Invalid id")
 )
 
-type Options struct {
-	PerPage int
-	Page    int
-}
-
-type ProxyUpdate struct {
-	Ip           *string
-	Port         *int
-	Protocol     *string
-	ResponseTime *int64
-	StatusId     *int64
-	CountryId    *int64
+type ProxyRepo interface {
+	GetAll(ctx context.Context, page, perPage int, country, status string) ([]dto.ProxyDTO, error)
 }
 
 type UserStorage interface {
-	Begin(ctx context.Context) (*sqlx.Tx, error)
-	GetBy(ctx context.Context, field string, value interface{}) (*domain.User, error)
-	Create(ctx context.Context, tx *sqlx.Tx, user *domain.User) (*domain.User, error)
-	GetByRefreshToken(ctx context.Context, refreshToken string) (*domain.User, error)
-	UpdateSession(ctx context.Context, tx *sqlx.Tx, user_id int64, refreshToken string) error
-	NewSession(ctx context.Context, tx *sqlx.Tx, user_id int64, refreshToken string) error
+	Begin(ctx context.Context, opt *sql.TxOptions) (*sqlx.Tx, error)
+
+	Get(ctx context.Context, id int64) (*domain.User, error)
+	GetBy(ctx context.Context, o map[string]interface{}) ([]domain.User, error)
+	Create(ctx context.Context, tx *sqlx.Tx, inst *domain.User) (int64, error)
+	Update(ctx context.Context, tx *sqlx.Tx, id int64, o map[string]interface{}) error
+	Delete(ctx context.Context, tx *sqlx.Tx, id int64) error
+}
+
+type SessionStorage interface {
+	Begin(ctx context.Context, opt *sql.TxOptions) (*sqlx.Tx, error)
+
+	Get(ctx context.Context, id int64) (*domain.Session, error)
+	GetBy(ctx context.Context, o map[string]interface{}) ([]domain.Session, error)
+	Create(ctx context.Context, tx *sqlx.Tx, inst *domain.Session) (int64, error)
+	Update(ctx context.Context, tx *sqlx.Tx, id int64, o map[string]interface{}) error
+	Delete(ctx context.Context, tx *sqlx.Tx, id int64) error
 }
 
 type ProxyStorage interface {
-	Get(ctx context.Context, id int64) (*domain.Proxy, error)
-	GetAvailable(ctx context.Context) ([]domain.Proxy, error)
-	GetAll(ctx context.Context) ([]domain.Proxy, error)
-	Update(ctx context.Context, tx *sqlx.Tx, id int64, fields *ProxyUpdate) error
-	UpdateStatus(ctx context.Context, id int64, statusId int64) error
-	Save(ctx context.Context, proxy *domain.Proxy) (int64, error)
-	SaveAll(ctx context.Context, proxies []domain.Proxy) error
-	Savex(ctx context.Context, tx *sqlx.Tx, inst *domain.Proxy) (int64, error)
-	SaveAllx(ctx context.Context, tx *sqlx.Tx, insts []domain.Proxy) error
+	Begin(ctx context.Context, opt *sql.TxOptions) (*sqlx.Tx, error)
 
-	Begin() (*sqlx.Tx, error)
+	Get(ctx context.Context, id int64) (*dto.ProxyDTO, error)
+	GetBy(ctx context.Context, o map[string]interface{}) ([]dto.ProxyDTO, error)
+	Create(ctx context.Context, tx *sqlx.Tx, inst *domain.Proxy) (int64, error)
+	Update(ctx context.Context, tx *sqlx.Tx, id int64, o map[string]interface{}) error
+	Delete(ctx context.Context, tx *sqlx.Tx, id int64) error
 }
 
 type CountryStorage interface {
-	Save(ctx context.Context, inst *domain.Country) (int64, error)
-	GetByCode(ctx context.Context, code string) (*domain.Country, error)
-	GetAll(ctx context.Context) ([]domain.Country, error)
-	SaveAll(ctx context.Context, insts []domain.Country) error
-	Savex(ctx context.Context, tx *sqlx.Tx, inst *domain.Country) (int64, error)
-	SaveAllx(ctx context.Context, tx *sqlx.Tx, insts []domain.Country) error
+	Begin(ctx context.Context, opt *sql.TxOptions) (*sqlx.Tx, error)
+
+	Get(ctx context.Context, id int64) (*domain.Country, error)
+	GetBy(ctx context.Context, o map[string]interface{}) ([]domain.Country, error)
+	Create(ctx context.Context, tx *sqlx.Tx, inst *domain.Country) (int64, error)
+	Update(ctx context.Context, tx *sqlx.Tx, id int64, o map[string]interface{}) error
+	Delete(ctx context.Context, tx *sqlx.Tx, id int64) error
 }
 
 type StatusStorage interface {
-	SaveAll(ctx context.Context, insts []domain.Status) error
+	Begin(ctx context.Context, opt *sql.TxOptions) (*sqlx.Tx, error)
+
+	Get(ctx context.Context, id int64) (*domain.Status, error)
+	GetBy(ctx context.Context, o map[string]interface{}) ([]domain.Status, error)
+	Create(ctx context.Context, tx *sqlx.Tx, inst *domain.Status) (int64, error)
+	Update(ctx context.Context, tx *sqlx.Tx, id int64, o map[string]interface{}) error
+	Delete(ctx context.Context, tx *sqlx.Tx, id int64) error
+}
+
+type FavoritsStorage interface {
+	Begin(ctx context.Context, opt *sql.TxOptions) (*sqlx.Tx, error)
+
+	Get(ctx context.Context, id int64) (*domain.Favorits, error)
+	GetBy(ctx context.Context, o map[string]interface{}) ([]domain.Favorits, error)
+	Create(ctx context.Context, tx *sqlx.Tx, inst *domain.Favorits) (int64, error)
+	Update(ctx context.Context, tx *sqlx.Tx, id int64, o map[string]interface{}) error
+	Delete(ctx context.Context, tx *sqlx.Tx, id int64) error
 }
 
 func ErrRecordNotFoundWrap(err error) error {

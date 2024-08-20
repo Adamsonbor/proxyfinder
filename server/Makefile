@@ -5,9 +5,11 @@ BIN=$(addprefix build/,$(patsubst cmd/%/main.go,%,$(SRC)))
 
 DB_PATH=./storage/local.db
 DB_PROD_PATH=./storage/prod.db
+DB_TEST_PATH=./storage/test.db
 MIGRATIONS_DIR=./migrations/goose
 GOMIGRATION_PATH=$(BIN_DIR)/initdb
-GOMIGRATION_COMMAND=$(GOMIGRATION_PATH) --dir $(MIGRATIONS_DIR)
+GOMIGRATION_DIR=./migrations/init/geonode
+GOMIGRATION_COMMAND=$(GOMIGRATION_PATH) --dir $(GOMIGRATION_DIR)
 GOOSE_PATH=$(BIN_DIR)/goose
 GOOSE_COMMAND=$(GOOSE_PATH) -dir $(MIGRATIONS_DIR) sqlite3
 
@@ -24,7 +26,6 @@ migrate:
 	$(GOOSE_COMMAND) $(DB_PROD_PATH) up
 	$(GOMIGRATION_COMMAND) --db $(DB_PROD_PATH) up
 
-
 # DEVELOPMENT
 migrate-dev:
 	$(GOOSE_COMMAND) $(DB_PATH) up
@@ -39,6 +40,16 @@ up-scheduler-dev:
 up-mail-dev:
 	air -c .air-mail.toml
 
+#TESTS
+migrate-test-up:
+	$(GOOSE_COMMAND) $(DB_TEST_PATH) up
+	$(GOMIGRATION_COMMAND) --db $(DB_TEST_PATH) up
+
+migrate-test-reset:
+	$(GOOSE_COMMAND) $(DB_TEST_PATH) reset
+
+test: migrate-test-up
+	go test ./... -cover
 
 # HELPERS
 $(BIN_DIR)/%: $(SRC_DIR)/%/main.go

@@ -3,24 +3,40 @@ package main
 import (
 	"log/slog"
 	"net/http"
-	googleapi "proxyfinder/internal/api/chi-router/auth/google"
-	// rabbitApi "proxyfinder/internal/api/chi-router/rabbit"
-	router "proxyfinder/internal/api/chi-router/v1/gorm"
-	routerv2 "proxyfinder/internal/api/chi-router/v2/gorm-sqlx"
-	jwtservice "proxyfinder/internal/auth/jwt"
-	// "proxyfinder/internal/broker/rabbit"
 	"proxyfinder/internal/config"
-	"proxyfinder/internal/logger"
-	gormstoragev1 "proxyfinder/internal/storage/gorm-storage"
-	gormstoragev2 "proxyfinder/internal/storage/v2/gorm-sotrage"
-	sqlxstorage "proxyfinder/internal/storage/v2/sqlx-storage"
+	googleservice "proxyfinder/internal/service/api/v1/auth/google"
+	jwtservice "proxyfinder/internal/service/api/v1/auth/jwt"
+	favoritsservice "proxyfinder/internal/service/api/v1/favorits"
+	proxyservice "proxyfinder/internal/service/api/v1/proxy"
+	userservice "proxyfinder/internal/service/api/v1/user"
+	favoritsstorage "proxyfinder/internal/storage/sqlx/favorits"
+	proxystorage "proxyfinder/internal/storage/sqlx/proxy"
+	userstorage "proxyfinder/internal/storage/sqlx/user"
+	googleapi "proxyfinder/internal/transport/api/chi/v1/auth/google"
+	favoritsapi "proxyfinder/internal/transport/api/chi/v1/favorits"
+	proxyapi "proxyfinder/internal/transport/api/chi/v1/proxy"
+	"proxyfinder/pkg/logger"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/jmoiron/sqlx"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
+	_ "github.com/mattn/go-sqlite3"
+
+	_ "proxyfinder/docs"
+
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
+// @title ProxyFinder API
+// @version 1.0
+// @description ProxyFinder API
+// @termsOfService http://swagger.io/terms/
+// @contact.name Adamson Bor
+// @contact.url http://github.com/Adamsonbor
+// @contact.email adamsonbor@gmail.com
+// @host localhost:8080
+// @BasePath /api/v1
 func main() {
 
 	// INIT config
@@ -29,44 +45,47 @@ func main() {
 	// INIT logger
 	log := logger.New(cfg.Env)
 	log.Info("Initializing with env: " + cfg.Env)
-	db, err := gorm.Open(sqlite.Open(cfg.Database.Path), &gorm.Config{})
-	if err != nil {
-		panic(err)
-	}
 
 	// INIT storage
-	storage := gormstoragev1.New(db)
-	storagev2 := gormstoragev2.New(db)
+	db := sqlx.MustOpen("sqlite3", "./storage/local.db")
+	proxyStorage := proxystorage.New(db)
+	favoritsStorage := favoritsstorage.New(db)
+	userStorage := userstorage.New(db)
 
-	// INIT sqlxdb
-	sqlxdb, err := sqlx.Connect("sqlite3", cfg.Database.Path)
-	if err != nil {
-		panic(err)
-	}
-
-	// INIT sqlx storage
-	sqlxStorage := sqlxstorage.New(sqlxdb)
-
-	// // INIT rabbitmq
-	// rabbitService := rabbit.NewRabbit(cfg, "mail")
-
-	// INIT jwt
-	jwt := jwtservice.NewJWTService(log, cfg, sqlxStorage.UserStorage)
+	// INIT service
+	proxyService := proxyservice.New(log, proxyStorage)
+	favoritsService := favoritsservice.New(log, favoritsStorage)
+	userService := userservice.New(log, userStorage)
+	jwtService := jwtservice.New(log, cfg)
+	googleAuthService := googleservice.New(log, userService, jwtService, cfg)
 
 	// INIT router
-	mux := chi.NewMux()
-
-	// INIT routers
-	routerv1 := router.New(log, storage)
-	routerv2 := routerv2.New(log, storagev2, sqlxStorage, jwt)
-	// routerRabbit := rabbitApi.New(log, rabbitService, cfg)
-	routerGoogle := googleapi.NewRouter(log, cfg, sqlxStorage.UserStorage)
+	mux := chi.NewRouter()
+	proxyController := proxyapi.New(log, proxyService)
+	favoritsController := favoritsapi.New(log, favoritsService)
+	googleAuthController := googleapi.New(log, googleAuthService, *cfg)
 
 	// register routes
-	mux.Mount("/api/v1", routerv1.Router)
-	mux.Mount("/api/v2", routerv2.Router)
-	// mux.Mount("/rabbit", routerRabbit.Router)
-	mux.Mount("/auth/google", routerGoogle.Router)
+	mux.Use(middleware.Recoverer)
+	mux.Use(middleware.Logger)
+	mux.Use(middleware.Heartbeat("/ping"))
+	mux.Use(middleware.Heartbeat("/health"))
+	mux.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
+
+	mux.Route("/api/v1", func(r chi.Router) {
+		r.Mount("/proxy", proxyController.Router)
+		r.Mount("/favorits", favoritsController.Router)
+	})
+	mux.Mount("/auth/google", googleAuthController.Router)
+	mux.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
+	))
 
 	// print routes
 	chi.Walk(mux, func(method, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {

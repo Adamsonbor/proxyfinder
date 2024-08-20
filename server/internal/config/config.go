@@ -36,6 +36,7 @@ type GoogleAuth struct {
 	RedirectUrl  string         `yaml:"redirect_url" required:"true"`
 	Scope        []string       `yaml:"scope" required:"true"`
 	RedirectTo   string         `yaml:"redirect_to" required:"true"`
+	Timeout      time.Duration  `yaml:"timeout"`
 }
 
 type JWT struct {

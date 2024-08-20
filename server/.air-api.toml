@@ -4,7 +4,7 @@ tmp_dir = "build"
 [build]
 	cmd="go build -o build/api cmd/api/main.go"
 	bin="build/api"
-	args_bin = ["--config=config/local.yaml", "--db=storage/local.db"]
+	args_bin = ["--config=config/local.yaml"]
 	exclude_regex = [
 		"*.json"
 	]

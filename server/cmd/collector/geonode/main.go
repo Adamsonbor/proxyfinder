@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"proxyfinder/internal/collector/geonode"
 	"proxyfinder/internal/config"
-	"proxyfinder/internal/logger"
+	"proxyfinder/internal/service/collector/geonode"
+	"proxyfinder/pkg/logger"
 
 	"github.com/google/uuid"
 )

@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"proxyfinder/internal/collector/geonode"
-	// "proxyfinder/internal/config"
 	"proxyfinder/internal/domain"
-	"proxyfinder/internal/logger"
+	"proxyfinder/internal/service/collector/geonode"
+	"proxyfinder/pkg/logger"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/mattn/go-sqlite3"
@@ -29,24 +28,6 @@ type Config struct {
 
 func (m Mute) Write(p []byte) (n int, err error) {
 	return 0, nil
-}
-
-func ParseFlags() *Config {
-	cfg := &Config{}
-	flag.StringVar(&cfg.dbPath, "db", "", "database path")
-	flag.StringVar(&cfg.dirPath, "dir", "", "directory path")
-	flag.BoolVar(&cfg.verbose, "verbose", false, "verbose")
-	flag.Parse()
-
-	if cfg.dirPath == "" {
-		panic("missing directory path")
-	}
-
-	if cfg.dbPath == "" {
-		panic("missing database path")
-	}
-
-	return cfg
 }
 
 // TODO: delete this shit code and write normal one
@@ -96,6 +77,24 @@ func main() {
 		panic(err)
 	}
 	fmt.Println("Done")
+}
+
+func ParseFlags() *Config {
+	cfg := &Config{}
+	flag.StringVar(&cfg.dbPath, "db", "", "database path")
+	flag.StringVar(&cfg.dirPath, "dir", "", "directory path")
+	flag.BoolVar(&cfg.verbose, "verbose", false, "verbose")
+	flag.Parse()
+
+	if cfg.dirPath == "" {
+		panic("missing directory path")
+	}
+
+	if cfg.dbPath == "" {
+		panic("missing database path")
+	}
+
+	return cfg
 }
 
 func upFillProxyTable(ctx context.Context, tx *sqlx.Tx, log *slog.Logger) error {

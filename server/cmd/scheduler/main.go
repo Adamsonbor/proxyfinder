@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	httpchecker "proxyfinder/internal/checker/http-checker"
-	defaultScheduler "proxyfinder/internal/scheduler/default-scheduler"
-	"proxyfinder/internal/storage/sqlx-storage"
+	httpchecker "proxyfinder/internal/service/checker/http-checker"
+	defaultscheduler "proxyfinder/internal/service/scheduler/default-scheduler"
+	proxystorage "proxyfinder/internal/storage/sqlx/proxy"
+	"proxyfinder/pkg/logger"
 
 	"proxyfinder/internal/config"
-	"proxyfinder/internal/logger"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
@@ -33,11 +33,11 @@ func main() {
 	log.Info("Database connected")
 
 	// INIT ProxyStorage
-	proxyStorage := sqlxstorage.NewProxy(db)
+	proxyStorage := proxystorage.New(db)
 	log.Info("ProxyStorage connected")
 
 	// INIT scheduler
-	scheduler := defaultScheduler.NewScheduler(cfg, log, proxyStorage, checker)
+	scheduler := defaultscheduler.New(cfg, log, proxyStorage, checker)
 	log.Info("Scheduler connected")
 
 	// START
