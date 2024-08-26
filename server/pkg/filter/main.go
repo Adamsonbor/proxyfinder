@@ -28,6 +28,7 @@ type options struct {
 	offset  int
 	is      bool
 
+	sort   []Sort
 	fields []Field
 }
 
@@ -38,8 +39,21 @@ type Field struct {
 	Type string
 }
 
+type Sort struct {
+	By    string
+	Order string
+}
+
 func New() Options {
-	return &options{}
+	return &options{
+		page:    1,
+		perPage: 10,
+		limit:   10,
+		offset:  0,
+		is:      false,
+		fields:  []Field{},
+		sort:    []Sort{},
+	}
 }
 
 type Options interface {
@@ -48,17 +62,46 @@ type Options interface {
 	PerPage() int
 	SetPerPage(int)
 	NextPage()
+
 	Limit() int
 	SetLimit(limit int)
 	Offset() int
 	SetOffset(offset int)
 	UpdateLimitAndOffset()
 
+	Sort() []Sort
+	AddSort(Sort)
+	MapSort(func(*Sort) error) error
+
 	Fields() []Field
-	Values() []interface{}
 	AddField(name string, op string, val interface{}, dtype string) error
+	SetField(id int, name string, op string, val interface{}, dtype string)
+	MapField(func(*Field) error) error
+
+	Values() []interface{}
 
 	Is() bool
+}
+
+func (self *options) Sort() []Sort {
+	return self.sort
+}
+
+func (self *options) AddSort(sort Sort) {
+	if sort.Order != "asc" && sort.Order != "desc" {
+		sort.Order = "asc"
+	}
+	self.sort = append(self.sort, sort)
+}
+
+func (self *options) MapSort(fn func(*Sort) error) error {
+	for i := range self.sort {
+		err := fn(&self.sort[i])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (self *options) Page() int {
@@ -82,7 +125,7 @@ func (self *options) PerPage() int {
 // If perPage is less than 1, it will be set to 1
 func (self *options) SetPerPage(perPage int) {
 	if perPage < 1 {
-		perPage = 1
+		perPage = 10
 	}
 	self.perPage = perPage
 }
@@ -116,6 +159,26 @@ func (self *options) AddField(name string, op string, val interface{}, dtype str
 		Val:  val,
 		Type: dtype,
 	})
+
+	return nil
+}
+
+func (self *options) SetField(id int, name string, op string, val interface{}, dtype string) {
+	self.fields[id] = Field{
+		Name: name,
+		Op:   op,
+		Val:  val,
+		Type: dtype,
+	}
+}
+
+func (self *options) MapField(fn func(*Field) error) error {
+	for i := range self.fields {
+		err := fn(&self.fields[i])
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

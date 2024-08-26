@@ -11,7 +11,7 @@ import (
 	"proxyfinder/internal/domain/dto"
 	serviceapiv1 "proxyfinder/internal/service/api"
 	"proxyfinder/internal/service/checker"
-	"proxyfinder/pkg/filter"
+	"proxyfinder/pkg/options"
 	"sync"
 	"time"
 )
@@ -22,6 +22,7 @@ type Scheduler struct {
 	checker      checker.Checker
 	proxyService serviceapiv1.ProxyService
 	stopChan     chan os.Signal
+	storageMu    sync.Mutex
 }
 
 func New(
@@ -36,6 +37,7 @@ func New(
 		checker:      checker,
 		proxyService: proxyService,
 		stopChan:     make(chan os.Signal, 1),
+		storageMu:    sync.Mutex{},
 	}
 }
 
@@ -47,10 +49,10 @@ func (s *Scheduler) Run() {
 
 	signal.Notify(s.stopChan, os.Interrupt)
 
-	ctx, cancel := context.WithTimeout(context.Background(), s.cfg.Scheduler.Timeout)
-	defer cancel()
+	startCtx, startCancel := context.WithTimeout(context.Background(), s.cfg.Scheduler.Timeout)
+	defer startCancel()
 	if s.cfg.Scheduler.StartImmediately {
-		s.Refresh(ctx)
+		s.Refresh(startCtx)
 	}
 
 	// Refreshing every hour
@@ -74,21 +76,22 @@ func (self *Scheduler) Refresh(ctx context.Context) error {
 	log := self.log.With(slog.String("op", "Scheduler.Refresh"))
 	log.Info("Start refreshing...")
 
-	limit := 10
+	limit := 1000
+	page := 1
 
-	options := filter.New()
-	options.SetPage(1)
-	options.SetPerPage(limit)
-	options.UpdateLimitAndOffset()
+	opts := options.New()
+	opts.AddField("page", options.OpEq, page)
+	opts.AddField("perPage", options.OpEq, limit)
 
-	for range 1 {
-		proxies, err := self.proxyService.GetAll(ctx, options)
-		if len(proxies) == 0 {
-			break
-		}
+	for {
+		proxies, err := self.proxyService.GetAll(ctx, opts, nil)
 		if err != nil {
 			log.Error("Proxy storage failed", slog.Any("err", err))
 			return err
+		}
+
+		if len(proxies) == 0 {
+			break
 		}
 
 		var wg sync.WaitGroup
@@ -109,7 +112,8 @@ func (self *Scheduler) Refresh(ctx context.Context) error {
 		}
 		wg.Wait()
 
-		options.NextPage()
+		page++
+		opts.SetField("page", options.OpEq, page)
 	}
 
 	log.Info("Refresh completed.")
@@ -177,11 +181,15 @@ func (self *Scheduler) Update(ctx context.Context, proxy domain.Proxy) error {
 	dbCtx, dbCancel := context.WithTimeout(ctx, self.cfg.Database.Timeout)
 	defer dbCancel()
 
-	options := filter.New()
-	options.AddField("id", filter.OpEq, proxy.Id, "int64")
-	options.AddField("status_id", filter.OpEq, proxy.StatusId, "int64")
-	options.AddField("response_time", filter.OpEq, proxy.ResponseTime, "int64")
-	return self.proxyService.Update(dbCtx, options)
+	opts := options.New()
+	opts.AddField("id", options.OpEq, proxy.Id)
+	opts.AddField("status_id", options.OpEq, proxy.StatusId)
+	opts.AddField("response_time", options.OpEq, proxy.ResponseTime)
+
+	self.storageMu.Lock()
+	defer self.storageMu.Unlock()
+
+	return self.proxyService.Update(dbCtx, opts)
 }
 
 func (s *Scheduler) Stop() {

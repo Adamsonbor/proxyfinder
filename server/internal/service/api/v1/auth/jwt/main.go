@@ -115,7 +115,7 @@ func (self *JWTService) JWTMiddleware(next http.Handler) http.Handler {
 		tokenString, err := self.ExtractToken(r)
 		if err != nil {
 			log.Error("extract", slog.Any("err", err))
-			ReturnError(log, w, http.StatusUnauthorized, ErrMissingToken)
+			chiapi.JSONresponse(w, http.StatusUnauthorized, nil, err)
 			return
 		}
 		log.Debug("token string", slog.Any("token", tokenString))
@@ -123,21 +123,21 @@ func (self *JWTService) JWTMiddleware(next http.Handler) http.Handler {
 		token, err := self.ParseToken(tokenString)
 		if err != nil {
 			log.Error("parse", slog.Any("err", err))
-			ReturnError(log, w, http.StatusUnauthorized, ErrInvalidToken)
+			chiapi.JSONresponse(w, http.StatusUnauthorized, nil, err)
 			return
 		}
 		log.Debug("token", slog.Any("token", token))
 
 		if !token.Valid {
 			log.Error("invalid")
-			ReturnError(log, w, http.StatusUnauthorized, ErrInvalidToken)
+			chiapi.JSONresponse(w, http.StatusUnauthorized, nil, ErrInvalidToken)
 			return
 		}
 
 		sUserId, err := token.Claims.GetSubject()
 		if err != nil {
 			log.Error("claims", slog.Any("err", err))
-			ReturnError(log, w, http.StatusUnauthorized, ErrInvalidToken)
+			chiapi.JSONresponse(w, http.StatusUnauthorized, nil, err)
 			return
 		}
 		log.Debug("user_id", slog.Any("user_id", sUserId))
@@ -145,13 +145,13 @@ func (self *JWTService) JWTMiddleware(next http.Handler) http.Handler {
 		i64UserId, err := strconv.ParseInt(sUserId, 10, 64)
 		if err != nil {
 			log.Error("Atoi", slog.Any("err", err))
-			ReturnError(log, w, http.StatusInternalServerError, err)
+			chiapi.JSONresponse(w, http.StatusUnauthorized, nil, err)
 			return
 		}
 
 		if i64UserId == 0 {
 			log.Error("user_id is zero")
-			ReturnError(log, w, http.StatusUnauthorized, ErrInvalidToken)
+			chiapi.JSONresponse(w, http.StatusUnauthorized, nil, ErrInvalidToken)
 			return
 		}
 
@@ -161,10 +161,4 @@ func (self *JWTService) JWTMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-func ReturnError(log *slog.Logger, w http.ResponseWriter, statusCode int, err error) {
-	log.Error("error", slog.Any("error", err))
-	w.WriteHeader(statusCode)
-	chiapi.JSONresponse(w, statusCode, nil, err)
 }

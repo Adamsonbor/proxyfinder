@@ -17,11 +17,23 @@ type UserService struct {
 	storage serviceapiv1.UserStorage
 }
 
-func New(log *slog.Logger, storage serviceapiv1.UserStorage) *UserService {
+func New(log *slog.Logger, storage serviceapiv1.UserStorage) serviceapiv1.UserService {
 	return &UserService{
 		log:     log,
 		storage: storage,
 	}
+}
+
+func (self *UserService) UserInfo(ctx context.Context, id int64) (domain.User, error) {
+	log := self.log.With(slog.String("op", "UserService.UserInfo"))
+
+	user, err := self.storage.GetBy(ctx, "id", id)
+	if err != nil {
+		log.Debug("failed to get user info", slog.Int64("user_id", id), slog.Any("error", err))
+		return domain.User{}, err
+	}
+
+	return user, nil
 }
 
 func (self *UserService) GetBy(ctx context.Context, fieldName string, value interface{}) (domain.User, error) {

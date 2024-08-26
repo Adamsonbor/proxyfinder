@@ -1,20 +1,37 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
+
+type leha struct {
+	Name string
+	Age  int
+}
 
 func main() {
-	a := "id"
+	fmt.Println("Hello, World!")
 
-	switch a {
-	case "ip":
-	case "port":
-	case "protocol":
-	case "response_time":
-	case "status_id":
-	case "country_id":
-	case "id":
-		fmt.Println("id")
-	default:
-		fmt.Println("default")
+	a := []leha{}
+
+	a = append(a, leha{
+		Name: "test",
+		Age:  1,
+	})
+
+	a = append(a, leha{
+		Name: "test2",
+		Age:  2,
+	})
+
+	for i := range a {
+		if a[i].Name == "test" {
+			a[i].Name = "test3"
+			a[i].Age = 3
+		}
+	}
+
+	for i := range a {
+		fmt.Println(a[i])
 	}
 }

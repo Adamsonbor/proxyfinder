@@ -2,7 +2,7 @@ package proxyservice
 
 import (
 	proxystorage "proxyfinder/internal/storage/sqlx/proxy"
-	"proxyfinder/pkg/filter"
+	opts "proxyfinder/pkg/options"
 	"testing"
 	"time"
 
@@ -12,11 +12,11 @@ import (
 
 func TestProxyService_OptionsMap(t *testing.T) {
 	type want struct {
-		options filter.Options
+		options opts.Options
 		err     error
 	}
 	type args struct {
-		options filter.Options
+		options opts.Options
 	}
 	type init struct {
 		service ProxyService
@@ -32,14 +32,14 @@ func TestProxyService_OptionsMap(t *testing.T) {
 			name: "Positive test #1",
 			desc: "Test with correct data",
 			init: func(t *testing.T) init {
-				options := filter.New()
+				options := opts.New()
 				country, status := "Russian Federation", "Unavailable"
-				options.AddField("country_name", filter.OpEq, country, "string")
-				options.AddField("status_name", filter.OpEq, status, "string")
+				options.AddField("country_name", opts.OpEq, country)
+				options.AddField("status_name", opts.OpEq, status)
 
-				wantOpts := filter.New()
-				wantOpts.AddField("country.name", filter.OpEq, country, "string")
-				wantOpts.AddField("status.name", filter.OpEq, status, "string")
+				wantOpts := opts.New()
+				wantOpts.AddField("country.name", opts.OpEq, country)
+				wantOpts.AddField("status.name", opts.OpEq, status)
 
 				return init{
 					service: *New(nil, proxystorage.New(nil)),
@@ -61,17 +61,17 @@ func TestProxyService_OptionsMap(t *testing.T) {
 			want := i.want
 
 			start := time.Now()
-			got, err := i.service.OptionsMap(args.options)
+			err := i.service.FieldsMap(args.options)
 			t.Logf("Took %s", time.Since(start))
 			require.NoError(t, err)
-			assert.ElementsMatch(t, want.options.Fields(), got.Fields())
+			assert.ElementsMatch(t, want.options.Fields(), args.options.Fields())
 		})
 	}
 }
 
 func TestProxyService_IsValudUpdateOptions(t *testing.T) {
 	type args struct {
-		options filter.Options
+		options opts.Options
 	}
 	type want struct {
 		err error
@@ -91,10 +91,10 @@ func TestProxyService_IsValudUpdateOptions(t *testing.T) {
 			desc: "Test with correct data",
 			init: func(t *testing.T) init {
 				service := New(nil, proxystorage.New(nil))
-				options := filter.New()
-				options.AddField("id", filter.OpEq, 1, "int64")
-				options.AddField("response_time", filter.OpEq, 1, "int64")
-				options.AddField("status_id", filter.OpEq, 1, "int64")
+				options := opts.New()
+				options.AddField("id", opts.OpEq, 1)
+				options.AddField("response_time", opts.OpEq, 1)
+				options.AddField("status_id", opts.OpEq, 1)
 
 				return init{
 					service: service,

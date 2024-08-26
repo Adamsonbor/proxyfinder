@@ -4,7 +4,7 @@ import (
 	"errors"
 	apiv1 "proxyfinder/internal/service/api"
 	favoritsstorage "proxyfinder/internal/storage/sqlx/favorits"
-	"proxyfinder/pkg/filter"
+	"proxyfinder/pkg/options"
 	"testing"
 	"time"
 
@@ -13,7 +13,7 @@ import (
 
 func TestFavoritsService_ValidateOptions(t *testing.T) {
 	type args struct {
-		options filter.Options
+		options options.Options
 	}
 	type want struct {
 		err error
@@ -32,13 +32,11 @@ func TestFavoritsService_ValidateOptions(t *testing.T) {
 			name: "Positive test #1",
 			desc: "Valid data",
 			init: func (t *testing.T) init {
-				options := filter.New()
-				options.SetLimit(10)
-				options.SetOffset(0)
-				options.AddField("user_id", filter.OpEq, "1", "int64")
+				opts := options.New()
+				opts.AddField("user_id", options.OpEq, "1")
 
 				args := args{
-					options: options,
+					options: opts,
 				}
 				want := want{
 					err: nil,
@@ -55,13 +53,11 @@ func TestFavoritsService_ValidateOptions(t *testing.T) {
 			name: "Positive test #2",
 			desc: "Valid data",
 			init: func (t *testing.T) init {
-				options := filter.New()
-				options.SetLimit(10)
-				options.SetOffset(0)
-				options.AddField("proxy_id", filter.OpEq, "1", "int64")
+				opts := options.New()
+				opts.AddField("proxy_id", options.OpEq, "1")
 
 				args := args{
-					options: options,
+					options: opts,
 				}
 				want := want{
 					err: nil,
@@ -93,7 +89,7 @@ func TestFavoritsService_ValidateOptions(t *testing.T) {
 
 func TestFavoritsService_ValidateOptionsError(t *testing.T) {
 	type args struct {
-		options filter.Options
+		options options.Options
 	}
 	type want struct {
 		err error
@@ -112,13 +108,11 @@ func TestFavoritsService_ValidateOptionsError(t *testing.T) {
 			name: "Negative test #1",
 			desc: "Invalid data",
 			init: func (t *testing.T) init {
-				options := filter.New()
-				options.SetLimit(10)
-				options.SetOffset(0)
-				options.AddField("name", filter.OpEq, "serega", "string")
+				opts := options.New()
+				opts.AddField("name", options.OpEq, "serega")
 
 				args := args{
-					options: options,
+					options: opts,
 				}
 				want := want{
 					err: errors.New(apiv1.ErrInvalidField),

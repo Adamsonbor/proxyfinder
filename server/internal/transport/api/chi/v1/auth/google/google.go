@@ -9,7 +9,7 @@ import (
 	"proxyfinder/internal/config"
 	"proxyfinder/internal/domain"
 	serviceapiv1 "proxyfinder/internal/service/api"
-	transportapi "proxyfinder/internal/transport/api"
+	chiapi "proxyfinder/internal/transport/api/chi"
 
 	"time"
 
@@ -65,7 +65,7 @@ func New(
 // @Tags auth
 // @Param refresh_token query string true "refresh token"
 // @Success 200
-// @Router /refresh [get]
+// @Router /auth/google/refresh [get]
 func (self *Router) Refresh(w http.ResponseWriter, r *http.Request) {
 	log := self.log.With(slog.String("op", "GoogleAuth.Refresh"))
 
@@ -79,18 +79,18 @@ func (self *Router) Refresh(w http.ResponseWriter, r *http.Request) {
 	res, err := self.service.UpdateRefreshToken(ctx, refreshToken)
 	if err != nil {
 		log.Debug("update refresh token error", slog.Any("error", err))
-		transportapi.JSONresponse(w, http.StatusInternalServerError, nil, err)
+		chiapi.JSONresponse(w, http.StatusInternalServerError, nil, err)
 		return
 	}
 
-	transportapi.JSONresponse(w, http.StatusOK, res, nil)
+	chiapi.JSONresponse(w, http.StatusOK, res, nil)
 }
 
 // @Summary redirect to google login
 // @Description redirect to google login
 // @Tags auth
 // @Success 200
-// @Router /login [get]
+// @Router /auth/google/login [get]
 func (self *Router) Login(w http.ResponseWriter, r *http.Request) {
 	url := self.service.Login("state")
 	http.Redirect(w, r, url, http.StatusFound)
@@ -112,7 +112,7 @@ func (self *Router) Callback(w http.ResponseWriter, r *http.Request) {
 	user, err := self.service.Callback(ctx, code)
 	if err != nil {
 		log.Debug("callback error", slog.Any("error", err))
-		transportapi.JSONresponse(w, http.StatusInternalServerError, nil, err)
+		chiapi.JSONresponse(w, http.StatusInternalServerError, nil, err)
 		return
 	}
 	log.Debug("user", slog.Any("user", user))
@@ -121,7 +121,7 @@ func (self *Router) Callback(w http.ResponseWriter, r *http.Request) {
 	err = self.GenerateAndSetCoockies(w, r, user)
 	if err != nil {
 		log.Debug("generate and set coockies error", slog.Any("error", err))
-		transportapi.JSONresponse(w, http.StatusInternalServerError, nil, err)
+		chiapi.JSONresponse(w, http.StatusInternalServerError, nil, err)
 		return
 	}
 

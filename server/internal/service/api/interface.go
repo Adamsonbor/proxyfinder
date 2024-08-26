@@ -2,11 +2,12 @@ package serviceapiv1
 
 import (
 	"context"
-	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"proxyfinder/internal/domain"
 	"proxyfinder/internal/domain/dto"
-	"proxyfinder/pkg/filter"
+	"proxyfinder/pkg/options"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 const (
@@ -24,16 +25,17 @@ type RefreshResponse struct {
 
 // TODO: fix filter dependency
 type ProxyService interface {
-	GetAll(ctx context.Context, options filter.Options) ([]dto.Proxy, error)
-	Update(ctx context.Context, options filter.Options) error
+	GetAll(ctx context.Context, filter options.Options, sort options.Options) ([]dto.Proxy, error)
+	Update(ctx context.Context, filter options.Options) error
 }
 
 // TODO: fix filter dependency
 type FavoritsService interface {
-	GetAll(ctx context.Context, options filter.Options) ([]domain.Favorits, error)
+	GetAll(ctx context.Context, filter options.Options, sort options.Options) ([]domain.Favorits, error)
 }
 
 type JWTService interface {
+	// get access_toke and set user_id in context
 	JWTMiddleware(next http.Handler) http.Handler
 	ParseToken(tokenString string) (*jwt.Token, error)
 	GenerateAccessToken(userId int64) (string, error)
@@ -52,6 +54,7 @@ type GoogleAuthService interface {
 // TODO: fix filter dependency
 type UserService interface {
 	// GetAll(ctx context.Context, options filter.Options) ([]domain.User, error)
+	UserInfo(ctx context.Context, id int64) (domain.User, error)
 	GetBy(ctx context.Context, fieldName string, value interface{}) (domain.User, error)
 	Save(ctx context.Context, user domain.User) (int64, error)
 	NewSession(ctx context.Context, userId int64, refresh string) error
@@ -59,13 +62,13 @@ type UserService interface {
 
 // TODO: fix filter dependency
 type ProxyStorage interface {
-	GetAll(ctx context.Context, options filter.Options) ([]dto.Proxy, error)
-	Update(ctx context.Context, options filter.Options) error
+	GetAll(ctx context.Context, filter options.Options, sort options.Options) ([]dto.Proxy, error)
+	Update(ctx context.Context, filter options.Options) error
 }
 
 // TODO: fix filter dependency
 type FavoritsStorage interface {
-	GetAll(ctx context.Context, options filter.Options) ([]domain.Favorits, error)
+	GetAll(ctx context.Context, filter options.Options, sort options.Options) ([]domain.Favorits, error)
 }
 
 // TODO: fix filter dependency

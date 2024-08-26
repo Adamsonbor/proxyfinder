@@ -15,6 +15,7 @@ import (
 	googleapi "proxyfinder/internal/transport/api/chi/v1/auth/google"
 	favoritsapi "proxyfinder/internal/transport/api/chi/v1/favorits"
 	proxyapi "proxyfinder/internal/transport/api/chi/v1/proxy"
+	userapi "proxyfinder/internal/transport/api/chi/v1/user"
 	"proxyfinder/pkg/logger"
 
 	"github.com/go-chi/chi/v5"
@@ -28,15 +29,14 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
-// @title ProxyFinder API
+// @title Proxpro API
 // @version 1.0
-// @description ProxyFinder API
+// @description Proxpro API
 // @termsOfService http://swagger.io/terms/
 // @contact.name Adamson Bor
 // @contact.url http://github.com/Adamsonbor
 // @contact.email adamsonbor@gmail.com
 // @host localhost:8080
-// @BasePath /api/v1
 func main() {
 
 	// INIT config
@@ -64,6 +64,7 @@ func main() {
 	proxyController := proxyapi.New(log, proxyService)
 	favoritsController := favoritsapi.New(log, favoritsService)
 	googleAuthController := googleapi.New(log, googleAuthService, *cfg)
+	userController := userapi.New(log, userService, jwtService, *cfg)
 
 	// register routes
 	mux.Use(middleware.Recoverer)
@@ -81,6 +82,7 @@ func main() {
 	mux.Route("/api/v1", func(r chi.Router) {
 		r.Mount("/proxy", proxyController.Router)
 		r.Mount("/favorits", favoritsController.Router)
+		r.Mount("/user", userController.Router)
 	})
 	mux.Mount("/auth/google", googleAuthController.Router)
 	mux.Get("/swagger/*", httpSwagger.Handler(

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"proxyfinder/internal/domain"
+	serviceapiv1 "proxyfinder/internal/service/api"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -24,7 +25,7 @@ type UserStorage struct {
 	db *sqlx.DB
 }
 
-func New(db *sqlx.DB) *UserStorage {
+func New(db *sqlx.DB) serviceapiv1.UserStorage {
 	return &UserStorage{
 		db: db,
 	}

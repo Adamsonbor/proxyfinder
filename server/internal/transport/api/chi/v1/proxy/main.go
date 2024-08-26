@@ -7,7 +7,8 @@ import (
 	serviceapi "proxyfinder/internal/service/api"
 	chiapi "proxyfinder/internal/transport/api/chi"
 	apiv1 "proxyfinder/internal/transport/api/chi/v1"
-	"proxyfinder/pkg/filter"
+	chiapiv1 "proxyfinder/internal/transport/api/chi/v1"
+	"proxyfinder/pkg/options"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -27,6 +28,7 @@ func New(log *slog.Logger, service serviceapi.ProxyService) *ProxyController {
 	}
 
 	r.Use(apiv1.FilterMiddleware)
+	r.Use(apiv1.SortMiddleware)
 	r.Get("/", router.GetAll)
 
 	return router
@@ -50,15 +52,21 @@ func New(log *slog.Logger, service serviceapi.ProxyService) *ProxyController {
 // @Success 200 {object} chiapi.Response
 // @Error 400 {object} chiapi.Response
 // @Error 500 {object} chiapi.Response
-// @Router /proxy [get]
+// @Router /api/v1/proxy [get]
 func (self *ProxyController) GetAll(w http.ResponseWriter, r *http.Request) {
-	options, ok := r.Context().Value(filter.FilterCtxKey).(filter.Options)
+	filter, ok := r.Context().Value(chiapiv1.FilterCtxKey).(options.Options)
 	if !ok {
 		chiapi.JSONresponse(w, http.StatusInternalServerError, nil, fmt.Errorf("failed to get options from context"))
 		return
 	}
 
-	proxies, err := self.service.GetAll(r.Context(), options)
+	sort, ok := r.Context().Value(chiapiv1.SortCtxKey).(options.Options)
+	if !ok {
+		chiapi.JSONresponse(w, http.StatusInternalServerError, nil, fmt.Errorf("failed to get options from context"))
+		return
+	}
+
+	proxies, err := self.service.GetAll(r.Context(), filter, sort)
 	if err != nil {
 		chiapi.JSONresponse(w, http.StatusInternalServerError, nil, err)
 		return

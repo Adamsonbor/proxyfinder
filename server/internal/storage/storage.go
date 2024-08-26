@@ -1,89 +1,183 @@
 package storage
 
 import (
-	"context"
-	"database/sql"
-	"errors"
+	"bytes"
 	"fmt"
-	"proxyfinder/internal/domain"
-	"proxyfinder/internal/storage/dto"
-
-	"github.com/jmoiron/sqlx"
+	"proxyfinder/pkg/options"
 )
 
 var (
 	ErrRecordNotFound = fmt.Errorf("Recod not found")
 	ErrEmptyOptions   = fmt.Errorf("Empty options")
 	ErrInvalidId      = fmt.Errorf("Invalid id")
+	ErrInvalidPage    = fmt.Errorf("Invalid page")
+	ErrInvalidPerPage = fmt.Errorf("Invalid perPage")
+
+	DefaultLimit  = 40
+	DefaultOffset = 0
 )
 
-type ProxyRepo interface {
-	GetAll(ctx context.Context, page, perPage int, country, status string) ([]dto.ProxyDTO, error)
+type QueryBuilder struct {
+	query   bytes.Buffer
+	page    int
+	perPage int
+	limit   int
+	offset  int
+	isWhere bool
+	isSort  bool
+	where   options.Options
+	sort    options.Options
+	values  []interface{}
 }
 
-type UserStorage interface {
-	Begin(ctx context.Context, opt *sql.TxOptions) (*sqlx.Tx, error)
-
-	Get(ctx context.Context, id int64) (*domain.User, error)
-	GetBy(ctx context.Context, o map[string]interface{}) ([]domain.User, error)
-	Create(ctx context.Context, tx *sqlx.Tx, inst *domain.User) (int64, error)
-	Update(ctx context.Context, tx *sqlx.Tx, id int64, o map[string]interface{}) error
-	Delete(ctx context.Context, tx *sqlx.Tx, id int64) error
-}
-
-type SessionStorage interface {
-	Begin(ctx context.Context, opt *sql.TxOptions) (*sqlx.Tx, error)
-
-	Get(ctx context.Context, id int64) (*domain.Session, error)
-	GetBy(ctx context.Context, o map[string]interface{}) ([]domain.Session, error)
-	Create(ctx context.Context, tx *sqlx.Tx, inst *domain.Session) (int64, error)
-	Update(ctx context.Context, tx *sqlx.Tx, id int64, o map[string]interface{}) error
-	Delete(ctx context.Context, tx *sqlx.Tx, id int64) error
-}
-
-type ProxyStorage interface {
-	Begin(ctx context.Context, opt *sql.TxOptions) (*sqlx.Tx, error)
-
-	Get(ctx context.Context, id int64) (*dto.ProxyDTO, error)
-	GetBy(ctx context.Context, o map[string]interface{}) ([]dto.ProxyDTO, error)
-	Create(ctx context.Context, tx *sqlx.Tx, inst *domain.Proxy) (int64, error)
-	Update(ctx context.Context, tx *sqlx.Tx, id int64, o map[string]interface{}) error
-	Delete(ctx context.Context, tx *sqlx.Tx, id int64) error
-}
-
-type CountryStorage interface {
-	Begin(ctx context.Context, opt *sql.TxOptions) (*sqlx.Tx, error)
-
-	Get(ctx context.Context, id int64) (*domain.Country, error)
-	GetBy(ctx context.Context, o map[string]interface{}) ([]domain.Country, error)
-	Create(ctx context.Context, tx *sqlx.Tx, inst *domain.Country) (int64, error)
-	Update(ctx context.Context, tx *sqlx.Tx, id int64, o map[string]interface{}) error
-	Delete(ctx context.Context, tx *sqlx.Tx, id int64) error
-}
-
-type StatusStorage interface {
-	Begin(ctx context.Context, opt *sql.TxOptions) (*sqlx.Tx, error)
-
-	Get(ctx context.Context, id int64) (*domain.Status, error)
-	GetBy(ctx context.Context, o map[string]interface{}) ([]domain.Status, error)
-	Create(ctx context.Context, tx *sqlx.Tx, inst *domain.Status) (int64, error)
-	Update(ctx context.Context, tx *sqlx.Tx, id int64, o map[string]interface{}) error
-	Delete(ctx context.Context, tx *sqlx.Tx, id int64) error
-}
-
-type FavoritsStorage interface {
-	Begin(ctx context.Context, opt *sql.TxOptions) (*sqlx.Tx, error)
-
-	Get(ctx context.Context, id int64) (*domain.Favorits, error)
-	GetBy(ctx context.Context, o map[string]interface{}) ([]domain.Favorits, error)
-	Create(ctx context.Context, tx *sqlx.Tx, inst *domain.Favorits) (int64, error)
-	Update(ctx context.Context, tx *sqlx.Tx, id int64, o map[string]interface{}) error
-	Delete(ctx context.Context, tx *sqlx.Tx, id int64) error
-}
-
-func ErrRecordNotFoundWrap(err error) error {
-	if errors.Is(err, sql.ErrNoRows) {
-		return ErrRecordNotFound
+func NewQueryBuilder() *QueryBuilder {
+	return &QueryBuilder{
+		limit:  DefaultLimit,
+		offset: DefaultOffset,
 	}
-	return err
+}
+
+func (self *QueryBuilder) Filter(filter options.Options) error {
+	var (
+		ok bool
+	)
+	if filter == nil {
+		return ErrEmptyOptions
+	}
+	for _, field := range filter.Fields() {
+		if field.Name == "page" {
+			self.page, ok = field.Val.(int)
+			if !ok {
+				return ErrInvalidPage
+			}
+			continue
+		}
+		if field.Name == "perPage" {
+			self.perPage, ok = field.Val.(int)
+			if !ok {
+				return ErrInvalidPerPage
+			}
+			continue
+		}
+		self.where = filter
+	}
+
+	return nil
+}
+
+func (self *QueryBuilder) Sort(sort options.Options) {
+	if sort == nil {
+		return
+	}
+	self.sort = sort
+}
+
+func (self *QueryBuilder) AddLimit(limit int) {
+	self.limit = limit
+}
+
+func (self *QueryBuilder) AddOffset(offset int) {
+	self.offset = offset
+}
+
+func (self *QueryBuilder) SetFilter(filter options.Options) {
+	self.where = filter
+}
+
+func (self *QueryBuilder) SetSort(sort options.Options) {
+	self.sort = sort
+}
+
+func (self *QueryBuilder) buildWhere() {
+	if self.where == nil {
+		return
+	}
+	for _, v := range self.where.Fields() {
+		if v.Name == "page" || v.Name == "perPage" {
+			continue
+		}
+		switch v.Val.(type) {
+		case []string:
+			self.addFilteSlice(v)
+			break
+		default:
+			self.addFilterString(v)
+		}
+	}
+}
+
+func (self *QueryBuilder) addFilterString(field options.Field) {
+	if self.isWhere {
+		self.query.WriteString(fmt.Sprintf("AND %s %s ?", field.Name, field.Op))
+	} else {
+		self.query.WriteString(fmt.Sprintf("WHERE %s %s ?", field.Name, field.Op))
+		self.isWhere = true
+	}
+	self.values = append(self.values, field.Val)
+}
+
+func (self *QueryBuilder) addFilteSlice(field options.Field) {
+	if self.isWhere {
+		self.query.WriteString(fmt.Sprintf("AND %s %s (", field.Name, field.Op))
+	} else {
+		self.query.WriteString(fmt.Sprintf("WHERE %s %s (", field.Name, field.Op))
+		self.isWhere = true
+	}
+	for i, str := range field.Val.([]string) {
+		self.values = append(self.values, str)
+		if i > 0 {
+			self.query.WriteString(", ")
+		}
+		self.query.WriteString(`?`)
+	}
+	self.query.WriteString(")")
+}
+
+func (self *QueryBuilder) buildSort() {
+	for _, v := range self.sort.Fields() {
+		if self.isSort {
+			self.query.WriteString(fmt.Sprintf(", %s %s", v.Name, v.Val.(string)))
+		} else {
+			self.query.WriteString(fmt.Sprintf(" ORDER BY %s %s", v.Name, v.Val.(string)))
+			self.isSort = true
+		}
+	}
+}
+
+func (self *QueryBuilder) buildLimit() {
+	if self.limit == 0 {
+		if self.perPage == 0 {
+			return
+		}
+		self.limit = self.perPage
+	}
+
+	self.query.WriteString(fmt.Sprintf(" LIMIT %d", self.limit))
+}
+
+func (self *QueryBuilder) buildOffset() {
+	if self.limit == 0 {
+		return
+	}
+	if self.offset == 0 {
+		if self.page == 0 {
+			return
+		}
+		self.offset = (self.page - 1) * self.perPage
+	}
+
+	self.query.WriteString(fmt.Sprintf(" OFFSET %d", self.offset))
+}
+
+func (self *QueryBuilder) BuildQuery(query string) string {
+	self.buildWhere()
+	self.buildSort()
+	self.buildLimit()
+	self.buildOffset()
+	// fmt.Println(fmt.Sprintf("%s %s", query, self.query.String()))
+	return fmt.Sprintf("%s %s", query, self.query.String())
+}
+
+func (self *QueryBuilder) Values() []interface{} {
+	return self.values
 }

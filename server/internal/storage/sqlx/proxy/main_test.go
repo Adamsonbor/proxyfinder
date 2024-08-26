@@ -3,7 +3,7 @@ package proxystorage
 import (
 	"context"
 	"proxyfinder/internal/domain/dto"
-	"proxyfinder/pkg/filter"
+	opts "proxyfinder/pkg/options"
 	"testing"
 	"time"
 
@@ -20,7 +20,7 @@ func TestProxyStorage_GetAll(t *testing.T) {
 	}
 	type args struct {
 		ctx     context.Context
-		options filter.Options
+		options opts.Options
 	}
 	type init struct {
 		storage ProxyStorage
@@ -48,11 +48,9 @@ func TestProxyStorage_GetAll(t *testing.T) {
 				err := db.Select(&answerProxies, query, country, status, limit, offset)
 				require.NoError(t, err)
 
-				options := filter.New()
-				options.SetLimit(limit)
-				options.SetOffset(offset)
-				options.AddField("country.name", filter.OpLike, country, "string")
-				options.AddField("status.name", filter.OpLike, status, "string")
+				options := opts.New()
+				options.AddField("country.name", opts.OpLike, country)
+				options.AddField("status.name", opts.OpLike, status)
 
 				args := args{
 					ctx:     context.Background(),
@@ -86,11 +84,9 @@ func TestProxyStorage_GetAll(t *testing.T) {
 				err := db.Select(&answerProxies, query, country, status, limit, offset)
 				require.NoError(t, err)
 
-				options := filter.New()
-				options.SetLimit(limit)
-				options.SetOffset(offset)
-				options.AddField("country.name", filter.OpLike, country, "string")
-				options.AddField("status.name", filter.OpLike, status, "string")
+				options := opts.New()
+				options.AddField("country.name", opts.OpLike, country)
+				options.AddField("status.name", opts.OpLike, status)
 
 				args := args{
 					ctx:     context.Background(),
@@ -118,7 +114,7 @@ func TestProxyStorage_GetAll(t *testing.T) {
 			want := i.want
 
 			start := time.Now()
-			proxies, err := i.storage.GetAll(args.ctx, args.options)
+			proxies, err := i.storage.GetAll(args.ctx, args.options, opts.New())
 			t.Logf("GetAll took %s", time.Since(start))
 			assert.Equal(t, want.err, err)
 			assert.ElementsMatch(t, want.proxies, proxies)

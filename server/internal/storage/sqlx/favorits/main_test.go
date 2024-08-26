@@ -4,7 +4,7 @@ import (
 	"context"
 	"proxyfinder/internal/domain"
 	apiv1 "proxyfinder/internal/service/api"
-	"proxyfinder/pkg/filter"
+	"proxyfinder/pkg/options"
 	"strconv"
 	"strings"
 	"testing"
@@ -18,8 +18,8 @@ import (
 
 func TestFavoritsStorage_GetAll(t *testing.T) {
 	type args struct {
-		ctx     context.Context
-		options filter.Options
+		ctx  context.Context
+		opts options.Options
 	}
 	type want struct {
 		res []domain.Favorits
@@ -57,13 +57,11 @@ func TestFavoritsStorage_GetAll(t *testing.T) {
 
 				storage := New(db)
 
-				options := filter.New()
-				options.SetLimit(10)
-				options.SetOffset(0)
-				options.AddField("user_id", "=", strconv.Itoa(user_id), "int64")
+				opts := options.New()
+				opts.AddField("user_id", "=", strconv.Itoa(user_id))
 				args := args{
 					ctx:     context.Background(),
-					options: options,
+					opts: opts,
 				}
 				want := want{
 					res: answer,
@@ -87,7 +85,7 @@ func TestFavoritsStorage_GetAll(t *testing.T) {
 			want := i.want
 
 			start := time.Now()
-			got, err := i.storage.GetAll(args.ctx, args.options)
+			got, err := i.storage.GetAll(args.ctx, args.opts, options.New())
 			t.Logf("Execution time: %s", time.Since(start))
 			require.Equal(t, want.err, err)
 			assert.ElementsMatch(t, want.res, got)

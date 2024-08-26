@@ -20,7 +20,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/favorits": {
+        "/api/v1/favorits": {
             "get": {
                 "description": "Get all favorits with filters",
                 "tags": [
@@ -75,21 +75,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/login": {
-            "get": {
-                "description": "redirect to google login",
-                "tags": [
-                    "auth"
-                ],
-                "summary": "redirect to google login",
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/proxy": {
+        "/api/v1/proxy": {
             "get": {
                 "description": "Get all proxies",
                 "consumes": [
@@ -168,7 +154,62 @@ const docTemplate = `{
                 }
             }
         },
-        "/refresh": {
+        "/api/v1/user": {
+            "get": {
+                "description": "Get user info",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Get user info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authorization",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/chiapi.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/chiapi.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/chiapi.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/google/login": {
+            "get": {
+                "description": "redirect to google login",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "redirect to google login",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/auth/google/refresh": {
             "get": {
                 "description": "update refresh token",
                 "tags": [
@@ -210,10 +251,10 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8080",
-	BasePath:         "/api/v1",
+	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "ProxyFinder API",
-	Description:      "ProxyFinder API",
+	Title:            "Proxpro API",
+	Description:      "Proxpro API",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"proxyfinder/internal/domain"
 	apiv1 "proxyfinder/internal/service/api"
-	"proxyfinder/pkg/filter"
+	"proxyfinder/pkg/options"
 )
 
 type FavoritsService struct {
@@ -21,7 +21,7 @@ func New(log *slog.Logger, storage apiv1.FavoritsStorage) *FavoritsService {
 	}
 }
 
-func (self *FavoritsService) GetAll(ctx context.Context, options filter.Options) ([]domain.Favorits, error) {
+func (self *FavoritsService) GetAll(ctx context.Context, options options.Options, sort options.Options) ([]domain.Favorits, error) {
 	log := self.log.With(slog.String("op", "FavoritsService.GetAll"))
 
 	err := self.ValidateOptions(options)
@@ -29,10 +29,10 @@ func (self *FavoritsService) GetAll(ctx context.Context, options filter.Options)
 		log.Warn("failed to validate options", slog.String("err", err.Error()))
 	}
 
-	return self.storage.GetAll(ctx, options)
+	return self.storage.GetAll(ctx, options, sort)
 }
 
-func (self *FavoritsService) ValidateOptions(options filter.Options) error {
+func (self *FavoritsService) ValidateOptions(options options.Options) error {
 	for _, opt := range options.Fields() {
 		switch opt.Name {
 		case "user_id":

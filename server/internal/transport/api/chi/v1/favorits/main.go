@@ -6,7 +6,7 @@ import (
 	apiv1 "proxyfinder/internal/service/api"
 	chiapi "proxyfinder/internal/transport/api/chi"
 	chiapiv1 "proxyfinder/internal/transport/api/chi/v1"
-	"proxyfinder/pkg/filter"
+	"proxyfinder/pkg/options"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -26,6 +26,7 @@ func New(log *slog.Logger, service apiv1.FavoritsService) *FavoritsController {
 	}
 
 	r.Use(chiapiv1.FilterMiddleware)
+	r.Use(chiapiv1.SortMiddleware)
 	r.Get("/", router.GetAll)
 
 	return router
@@ -43,15 +44,16 @@ func New(log *slog.Logger, service apiv1.FavoritsService) *FavoritsController {
 // @Success 200 {object} chiapi.Response
 // @Failure 400 {object} chiapi.Response
 // @Failure 500 {object} chiapi.Response
-// @Router /favorits [get]
+// @Router /api/v1/favorits [get]
 func (self *FavoritsController) GetAll(w http.ResponseWriter, r *http.Request) {
 	log := self.log.With(slog.String("op", "FavoritsController.GetAll"))
 
-	options, _ := r.Context().Value(filter.FilterCtxKey).(filter.Options)
+	filter, _ := r.Context().Value(chiapiv1.FilterCtxKey).(options.Options)
+	sort, _ := r.Context().Value(chiapiv1.SortCtxKey).(options.Options)
 
-	log.Debug("request", slog.Any("options", options))
+	log.Debug("request", slog.Any("options", filter))
 
-	result, err := self.service.GetAll(r.Context(), options)
+	result, err := self.service.GetAll(r.Context(), filter, sort)
 	if err != nil {
 		log.Error("failed to get all", slog.Any("err", err))
 		chiapi.JSONresponse(w, http.StatusBadRequest, nil, err)
