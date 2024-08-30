@@ -12,13 +12,24 @@ TODO:
 
 IN PROGRESS:
 	frontend:
+		- fix favorits button
 		- fix login (add login button on header that should open a modal widow
 			which contains oauth2.0 buttons)
+		- setup favoritsRepo for update and delete favorits
 	server:
-		- change all gorm storage to sqlx
+		- fix user service:
+			fix get user by refresh token (user should be return if refresh token is latest and not expired)
+		- add Create body validation to favorits service
 
 DONE:
 	frontend:
+		- fix display user data in header
+		- fix get user by refresh token
+		- fix autocompletesearch field on left panel
+		- fix protocol filter on left panel
+		- fix available filter on left panel
+		- fix leftPanel
+		- update api usage (add pagination and sorting)
 		- add Login required popup on favorite buttons
 		- add Repository class to make api calls
 		- fix token usage, use refresh token if access token is expired
@@ -32,7 +43,22 @@ DONE:
 		- add google icon to header for google auth
 		- add Github icon to header for auth (soon)
 		- add Mail.ru icon to header for auth (soon)
+
 	server:
+		- fix googleauth service (fix jwt cookie expiration)
+		- fix favorits storage (user_id and proxy_id should be proxy_id and user_id)
+		- fix UserInfo endpoint
+		- fix google auth for development
+		- add Create && DELETE method to favorits service 
+		- add Create && DELETE method to favorits storage 
+		- add Create && DELETE method to favorits router
+		- fix scheduler (change proxyStorage.GetAll method to new version with filter and sorting)
+		- add filter by list (?name=leha,sergo,sanya)
+		- add multiple sorting (?sort_by=user_id,user_name)
+		- add sorting
+		- add filters
+		- change all gorm storage to sqlx
+		- create sqlx storages
 		- add GetUserByRefreshToken function that will return user by refresh token
 			to userStorage
 		- fix gorm delete method

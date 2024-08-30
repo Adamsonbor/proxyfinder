@@ -24,6 +24,8 @@ var (
 	ErrExpiredToken  = fmt.Errorf("expired token")
 	ErrMissingToken  = fmt.Errorf("missing token")
 	ErrSigningMethod = fmt.Errorf("invalid signing method")
+
+	JwtUserCtxKey = "user_id"
 )
 
 // tokens and session_id
@@ -51,21 +53,21 @@ func New(
 }
 
 // Generate access token
-func (self *JWTService) GenerateAccessToken(userId int64) (string, error) {
+func (self *JWTService) GenerateAccessToken(userId int64) (*jwt.Token, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": strconv.FormatInt(userId, 10),
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(self.cfg.JWT.AccessTokenTTL).Unix(),
 	})
 
-	return token.SignedString([]byte(self.secret))
+	return token, nil
 }
 
 // Generate refresh token
-func (self JWTService) GenerateRefreshToken() (string, error) {
+func (self JWTService) GenerateRefreshToken() (*jwt.Token, error) {
 	key, err := uuid.NewV7()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": key.String(),
@@ -73,7 +75,7 @@ func (self JWTService) GenerateRefreshToken() (string, error) {
 		"exp": time.Now().Add(self.cfg.JWT.RefreshTokenTTL).Unix(),
 	})
 
-	return token.SignedString([]byte(self.secret))
+	return token, nil
 }
 
 // Extract token from header
@@ -156,7 +158,7 @@ func (self *JWTService) JWTMiddleware(next http.Handler) http.Handler {
 		}
 
 		// set user_id in context
-		ctx := context.WithValue(r.Context(), "user_id", i64UserId)
+		ctx := context.WithValue(r.Context(), JwtUserCtxKey, i64UserId)
 		log.Info("success", slog.String("user_id", sUserId))
 
 		next.ServeHTTP(w, r.WithContext(ctx))

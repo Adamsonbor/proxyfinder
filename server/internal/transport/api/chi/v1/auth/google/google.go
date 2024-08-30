@@ -7,7 +7,6 @@ import (
 
 	// dependencies
 	"proxyfinder/internal/config"
-	"proxyfinder/internal/domain"
 	serviceapiv1 "proxyfinder/internal/service/api"
 	chiapi "proxyfinder/internal/transport/api/chi"
 
@@ -15,12 +14,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 )
-
-type RefreshResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int64  `json:"expires_in"`
-}
 
 type Router struct {
 	log     *slog.Logger
@@ -72,6 +65,8 @@ func (self *Router) Refresh(w http.ResponseWriter, r *http.Request) {
 	// validate token
 	refreshToken := r.URL.Query().Get("refresh_token")
 
+	log.Debug("refresh token", slog.String("token", refreshToken))
+
 	// update refresh token
 	ctx, cancel := context.WithTimeout(r.Context(), self.cfg.GoogleAuth.Timeout)
 	defer cancel()
@@ -82,6 +77,8 @@ func (self *Router) Refresh(w http.ResponseWriter, r *http.Request) {
 		chiapi.JSONresponse(w, http.StatusInternalServerError, nil, err)
 		return
 	}
+
+	log.Debug("tokens", slog.Any("token", res))
 
 	chiapi.JSONresponse(w, http.StatusOK, res, nil)
 }
@@ -101,55 +98,58 @@ func (self *Router) Login(w http.ResponseWriter, r *http.Request) {
 // and redirect to frontend
 func (self *Router) Callback(w http.ResponseWriter, r *http.Request) {
 	log := self.log.With(slog.String("op", "GoogleAuth.Callback"))
+
+	if r.URL.Query().Get("error") != "" {
+		log.Debug("google access denied", slog.Any("error", r.URL.Query().Get("error")))
+		http.Redirect(w, r, self.cfg.GoogleAuth.RedirectTo, http.StatusFound)
+		return
+	}
+
 	log.Debug("request", slog.Any("request", r.URL.Query()))
 
-	// get access token
-	code := r.FormValue("code")
 
-	// Get or create new user and
+	// get access token from google
+	code := r.FormValue("code")
+	log.Debug("code", slog.String("code", code))
+
+	// service return serviceapiv1.JWTokens
 	ctx, cancel := context.WithTimeout(r.Context(), self.cfg.GoogleAuth.Timeout)
 	defer cancel()
-	user, err := self.service.Callback(ctx, code)
+	tokens, err := self.service.Callback(ctx, code)
 	if err != nil {
 		log.Debug("callback error", slog.Any("error", err))
-		chiapi.JSONresponse(w, http.StatusInternalServerError, nil, err)
+		http.Redirect(w, r, self.cfg.GoogleAuth.RedirectTo, http.StatusFound)
 		return
-	}
-	log.Debug("user", slog.Any("user", user))
-
-	// generate new tokens and set coockies
-	err = self.GenerateAndSetCoockies(w, r, user)
-	if err != nil {
-		log.Debug("generate and set coockies error", slog.Any("error", err))
-		chiapi.JSONresponse(w, http.StatusInternalServerError, nil, err)
-		return
-	}
-
-	// redirect to frontend
-	http.Redirect(w, r, self.cfg.GoogleAuth.RedirectTo, http.StatusFound)
-}
-
-func (self *Router) GenerateAndSetCoockies(w http.ResponseWriter, r *http.Request, user domain.User) error {
-	accessToken, refreshToken, err := self.service.GenerateTokens(user)
-	if err != nil {
-		return err
 	}
 
 	// set cookies
+	err = self.SetCookies(w, tokens)
+	if err != nil {
+		log.Debug("set cookies error", slog.Any("error", err))
+		http.Redirect(w, r, self.cfg.GoogleAuth.RedirectTo, http.StatusFound)
+		return
+	}
+
+	// redirect to frontend with cookies
+	log.Debug("redirect to frontend")
+	http.Redirect(w, r, self.cfg.GoogleAuth.RedirectTo, http.StatusFound)
+}
+
+func (self *Router) SetCookies(w http.ResponseWriter, tokens *serviceapiv1.JWTokens) error {
+	// set cookies
 	http.SetCookie(w, &http.Cookie{
 		Name:    "access_token",
-		Value:   accessToken,
-		Expires: time.Now().Add(time.Duration(self.cfg.JWT.AccessTokenTTL.Seconds())),
+		Value:   tokens.AccessToken,
+		Expires: time.Unix(tokens.ExpiresIn, 0).UTC(),
 		Path:    "/",
 	})
 
 	http.SetCookie(w, &http.Cookie{
 		Name:    "refresh_token",
-		Value:   refreshToken,
-		Expires: time.Now().Add(time.Duration(self.cfg.JWT.RefreshTokenTTL.Seconds())),
+		Value:   tokens.RefreshToken,
+		Expires: time.Unix(tokens.ExpiresIn, 0).UTC(),
 		Path:    "/",
 	})
 
 	return nil
 }
-

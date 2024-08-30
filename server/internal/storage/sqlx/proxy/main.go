@@ -22,8 +22,9 @@ const (
 			country.id as "country.id", country.name as "country.name", country.code as "country.code",
 			country.created_at as "country.created_at", country.updated_at as "country.updated_at"
 		FROM proxy
-			JOIN status ON proxy.status_id = status.id
-			JOIN country ON proxy.country_id = country.id
+			LEFT JOIN status ON proxy.status_id = status.id
+			LEFT JOIN country ON proxy.country_id = country.id
+			LEFT JOIN favorits ON proxy.id = favorits.proxy_id
 		`
 	createQuery = `
 		INSERT INTO proxy 

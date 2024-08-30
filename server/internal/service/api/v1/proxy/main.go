@@ -103,6 +103,8 @@ func (self *ProxyService) MapFieldName(fieldName string) (string, error) {
 		return "proxy.protocol", nil
 	case "response_time":
 		return "proxy.response_time", nil
+	case "updated_at":
+		return "proxy.updated_at", nil
 	case "country_id":
 		return "country.id", nil
 	case "country_name":
@@ -113,6 +115,8 @@ func (self *ProxyService) MapFieldName(fieldName string) (string, error) {
 		return "status.id", nil
 	case "status_name":
 		return "status.name", nil
+	case "favorits":
+		return "favorits.user_id", nil
 	default:
 		self.log.Debug("invalid field", slog.String("field", fieldName))
 		return "", fmt.Errorf(apiv1.ErrInvalidField)

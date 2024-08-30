@@ -134,6 +134,9 @@ func (self *QueryBuilder) addFilteSlice(field options.Field) {
 }
 
 func (self *QueryBuilder) buildSort() {
+	if self.sort == nil {
+		return
+	}
 	for _, v := range self.sort.Fields() {
 		if self.isSort {
 			self.query.WriteString(fmt.Sprintf(", %s %s", v.Name, v.Val.(string)))
@@ -145,10 +148,7 @@ func (self *QueryBuilder) buildSort() {
 }
 
 func (self *QueryBuilder) buildLimit() {
-	if self.limit == 0 {
-		if self.perPage == 0 {
-			return
-		}
+	if self.perPage > 0 {
 		self.limit = self.perPage
 	}
 
@@ -174,7 +174,6 @@ func (self *QueryBuilder) BuildQuery(query string) string {
 	self.buildSort()
 	self.buildLimit()
 	self.buildOffset()
-	// fmt.Println(fmt.Sprintf("%s %s", query, self.query.String()))
 	return fmt.Sprintf("%s %s", query, self.query.String())
 }
 

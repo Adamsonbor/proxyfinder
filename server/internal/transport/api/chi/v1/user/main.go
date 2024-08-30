@@ -7,9 +7,9 @@ import (
 	"proxyfinder/internal/config"
 	apiv1 "proxyfinder/internal/service/api"
 	serviceapiv1 "proxyfinder/internal/service/api"
+	jwtservice "proxyfinder/internal/service/api/v1/auth/jwt"
 	chiapi "proxyfinder/internal/transport/api/chi"
 	chiapiv1 "proxyfinder/internal/transport/api/chi/v1"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -58,23 +58,19 @@ func New(
 func (self *UserController) UserInfo(w http.ResponseWriter, r *http.Request) {
 	log := self.log.With(slog.String("op", "user.UserInfo"))
 
-	idStr := r.Context().Value("user_id").(string)
-	id64, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		log.Debug("failed to parse id", slog.String("id", idStr), slog.Any("error", err))
-		chiapi.JSONresponse(w, http.StatusBadRequest, nil, err)
-		return
-	}
+	id := r.Context().Value(jwtservice.JwtUserCtxKey).(int64)
 
 	ctx, cancel := context.WithTimeout(r.Context(), self.cfg.Database.Timeout)
 	defer cancel()
 
-	user, err := self.service.UserInfo(ctx, id64)
+	user, err := self.service.UserInfo(ctx, id)
 	if err != nil {
 		log.Debug("failed to get user info", slog.Any("error", err))
 		chiapi.JSONresponse(w, http.StatusBadRequest, nil, err)
 		return
 	}
+
+	log.Debug("user", slog.Any("user", user))
 
 	chiapi.JSONresponse(w, http.StatusOK, user, nil)
 }

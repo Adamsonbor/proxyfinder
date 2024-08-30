@@ -1,10 +1,10 @@
 import { Config } from "../../config";
-import { User } from "../../types";
+import { Country } from "../../types";
 import { Jwt } from "../../utils/jwt/jwt";
 import { CRUDMixin } from "../repo";
 
-export class UserRepo extends CRUDMixin<User> {
+export class CountryRepo extends CRUDMixin<Country> {
 	constructor(config: Config) {
-		super(`${config.server.apiUrl}/user`, new Jwt(config));
+		super(`${config.server.apiUrl}/countries`, new Jwt(config));
 	}
 }

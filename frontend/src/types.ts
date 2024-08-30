@@ -1,6 +1,3 @@
-export type StatusId = number
-export type CountryId = number
-
 export interface Favorits {
 	id: number
 	user_id: number
@@ -9,7 +6,7 @@ export interface Favorits {
 	updated_at: string
 }
 
-export interface ProxyV2 {
+export interface Proxy {
 	id: number
 	ip: string
 	port: string
@@ -17,39 +14,21 @@ export interface ProxyV2 {
 	response_time: number
 	created_at: string
 	updated_at: string
+	status_id: number
+	country_id: number
 	status: Status
 	country: Country
 }
 
-export type Proxy = {
-	id: number
-	ip: string
-	port: string
-	country_id: CountryId
-	status_id: StatusId
-	protocol: string
-	response_time: number
-	created_at: string
-	updated_at: string
-}
-
 export type Country = {
-	id: CountryId
+	id: number
 	name: string
 	code: string
 }
 
 export type Status = {
-	id: StatusId
+	id: number
 	name: string
-}
-
-export type ProxyRow = Proxy & {
-	country_name: string
-	country_code: string
-	status: string
-	created_at_formatted: Date
-	updated_at_formatted: Date
 }
 
 export type User = {

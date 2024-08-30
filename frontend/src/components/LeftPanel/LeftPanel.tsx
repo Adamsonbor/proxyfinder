@@ -4,7 +4,6 @@ import SearchMultipleAutocomplete from "../SearchMultipleAutocomplete/SearchMult
 import CheckboxForm from "../CheckboxForm/CheckboxForm";
 import LinkButton from "../LinkButton/LinkButton";
 import RadioButtonGroup from "../RadioButtonGroup/RadioButtonGroup";
-import { ProxyRow } from "../../types";
 import { darkTheme, lightTheme } from "../../theme";
 import ThemeSwitch from "../ThemeSwitch/ThemeSwitch";
 import { Theme } from "@mui/material/styles";
@@ -12,22 +11,24 @@ import { Theme } from "@mui/material/styles";
 interface Props {
 	className?: string
 	sx?: object
-	proxies?: ProxyRow[]
 	theme?: Theme
 	setTheme?: (theme: Theme) => void
-	setProxies?: (proxies: ProxyRow[]) => void
+	countries?: string[]
+	filter?: object
+	setFilter?: (filter: object) => void
 }
 
 interface ProtocolState {
 	label: string
 	checked: boolean
+	name: string
 }
 
 const protocols: ProtocolState[] = [
-	{ label: "HTTP", checked: true },
-	{ label: "HTTPS", checked: true },
-	{ label: "SOCKS4", checked: true },
-	{ label: "SOCKS5", checked: true },
+	{ label: "HTTP", checked: false, name: "http" },
+	{ label: "HTTPS", checked: false, name: "https" },
+	{ label: "SOCKS4", checked: false, name: "socks4" },
+	{ label: "SOCKS5", checked: false, name: "socks5" },
 ]
 
 const availableStatuses = [
@@ -39,8 +40,9 @@ const availableStatuses = [
 export default function LeftPanel({
 	className = "",
 	sx = {},
-	proxies = [],
-	setProxies = () => { },
+	countries = [],
+	filter = {},
+	setFilter = () => { },
 	theme = lightTheme,
 	setTheme = () => { },
 }: Props) {
@@ -48,15 +50,40 @@ export default function LeftPanel({
 	const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
 	const [protocolStates, setProtocolStates] = useState<ProtocolState[]>(protocols);
 	const [selectedStatus, setSelectedStatus] = useState<string>(availableStatuses[0]);
-	let countries: string[] = uniqueArray(proxies.map((proxy) => proxy.country_name));
+	countries = uniqueArray(countries)
 
 	const toggleTheme = () => {
 		setTheme(theme === lightTheme ? darkTheme : lightTheme);
 	};
 
 	useEffect(() => {
-		setProxies(filterProxies(proxies));
-	}, [selectedCountries, protocolStates, selectedStatus]);
+		if (selectedCountries.length === 0) {
+			delete filter["country_name"];
+		} else {
+			filter["country_name"] = selectedCountries;
+		}
+		setFilter({ ...filter });
+	}, [selectedCountries]);
+
+	useEffect(() => {
+		if (protocolStates.filter((protocol: ProtocolState) => protocol.checked).length === 0) {
+			delete filter["protocol"];
+		} else {
+			filter["protocol"] = protocolStates
+				.filter((protocol: ProtocolState) => protocol.checked)
+				.map((protocol: ProtocolState) => protocol.name);
+		}
+		setFilter({ ...filter });
+	}, [protocolStates]);
+
+	useEffect(() => {
+		if (selectedStatus === "All") {
+			delete filter["status_name"];
+		} else {
+			filter["status_name"] = selectedStatus;
+		}
+		setFilter({ ...filter });
+	}, [selectedStatus]);
 
 	return (
 		<div
@@ -79,7 +106,7 @@ export default function LeftPanel({
 							height: '100%',
 						}}>
 						<SearchMultipleAutocomplete
-							values={countries?? []}
+							values={countries ?? []}
 							label="Country or Region"
 							selectedValues={selectedCountries}
 							setSelectedValues={setSelectedCountries}
@@ -156,24 +183,6 @@ export default function LeftPanel({
 			</div>
 		</div >
 	);
-
-	function filterProxies(proxies: ProxyRow[]): ProxyRow[] {
-		let out = []
-
-		for (const proxy of proxies) {
-			for (const protocol of protocolStates) {
-				if (protocol.checked && proxy.protocol.toUpperCase() === protocol.label) {
-					if (selectedStatus === "All" || proxy.status === selectedStatus) {
-						if (selectedCountries.length === 0 || selectedCountries.includes(proxy.country_name)) {
-							out.push(proxy)
-						}
-					}
-				}
-			}
-		}
-
-		return out
-	}
 
 	function protocolHandler(label: string) {
 		const newProtocolStates = protocolStates.map((protocol) => {

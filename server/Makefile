@@ -31,6 +31,9 @@ migrate-dev:
 	$(GOOSE_COMMAND) $(DB_PATH) up
 	$(GOMIGRATION_COMMAND) --db $(DB_PATH) up
 
+migrate-dev-down:
+	$(GOOSE_COMMAND) $(DB_PATH) down
+
 up-api-dev:
 	air -c .air-api.toml
 

@@ -62,7 +62,7 @@ func main() {
 	// INIT router
 	mux := chi.NewRouter()
 	proxyController := proxyapi.New(log, proxyService)
-	favoritsController := favoritsapi.New(log, favoritsService)
+	favoritsController := favoritsapi.New(log, favoritsService, jwtService)
 	googleAuthController := googleapi.New(log, googleAuthService, *cfg)
 	userController := userapi.New(log, userService, jwtService, *cfg)
 

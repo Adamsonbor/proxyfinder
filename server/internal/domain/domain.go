@@ -47,7 +47,7 @@ type User struct {
 	Email       string    `json:"email"`
 	Phone       string    `json:"phone"`
 	PhotoUrl    string    `json:"photo_url" db:"photo_url"`
-	DateOfBirth time.Time    `json:"date_of_birth" db:"date_of_birth"`
+	DateOfBirth time.Time `json:"date_of_birth" db:"date_of_birth"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }

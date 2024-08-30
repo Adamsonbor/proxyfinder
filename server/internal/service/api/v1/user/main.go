@@ -2,6 +2,7 @@ package userservice
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log/slog"
 	"proxyfinder/internal/domain"
@@ -41,9 +42,15 @@ func (self *UserService) GetBy(ctx context.Context, fieldName string, value inte
 
 	switch fieldName {
 		case "refresh_token":
-			return self.storage.GetByRefreshToken(ctx, self.MapFieldName(fieldName))
+			return self.storage.GetByRefreshToken(ctx, value.(string))
 		case "id", "name", "email", "phone":
-			return self.storage.GetBy(ctx, fieldName, value)
+			user, err := self.storage.GetBy(ctx, fieldName, value)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					return domain.User{}, errors.New(serviceapiv1.ErrRecordNotFound)
+				}
+			}
+			return user, err
 		default:
 			log.Debug("invalid field name", slog.String("field_name", fieldName))
 			return domain.User{}, errors.New(serviceapiv1.ErrInvalidField)
@@ -62,9 +69,9 @@ func (self *UserService) Save(ctx context.Context, user domain.User) (int64, err
 	return self.storage.Save(ctx, user)
 }
 
-func (self *UserService) NewSession(ctx context.Context, userId int64, token string) error {
+func (self *UserService) NewSession(ctx context.Context, userId int64, token string, expiresAt int64) error {
 	log := self.log.With(slog.String("op", "UserService.NewSession"))
-	err := self.storage.NewSession(ctx, userId, token)
+	err := self.storage.NewSession(ctx, userId, token, expiresAt)
 	if err != nil {
 		log.Debug("failed to create new session", slog.Int64("user_id", userId))
 		return err
@@ -76,7 +83,7 @@ func (self *UserService) NewSession(ctx context.Context, userId int64, token str
 func (self *UserService) MapFieldName(fieldName string) string {
 	switch fieldName {
 	case "refresh_token":
-		return "session.refresh_token"
+		return "session.token"
 	default:
 		return fieldName
 	}

@@ -33,7 +33,6 @@ export default function Header({
 			style={{
 				backgroundColor: theme.palette.backgroundWhite,
 				width: "100%",
-				position: "fixed",
 				top: 0,
 				left: 0,
 				zIndex: 100,

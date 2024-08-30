@@ -68,6 +68,91 @@
                 }
             }
         },
+        "/api/v1/favorits/": {
+            "post": {
+                "description": "Create favorit. Request must contain Authorization in headers and {user_id, proxy_id} in body",
+                "tags": [
+                    "favorits"
+                ],
+                "summary": "Create",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authorization",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "FavoriteCreate",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.FavoriteCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/chiapi.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/chiapi.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/chiapi.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/favorits/{proxy_id}": {
+            "delete": {
+                "description": "Delete favorit. Request must contain proxy_id and access_token in headers for authorization",
+                "tags": [
+                    "favorits"
+                ],
+                "summary": "Delete",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Proxy id",
+                        "name": "proxy_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/chiapi.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/chiapi.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/chiapi.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/proxy": {
             "get": {
                 "description": "Get all proxies",
@@ -234,6 +319,17 @@
                 "error": {},
                 "status": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.FavoriteCreate": {
+            "type": "object",
+            "properties": {
+                "proxy_id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
                 }
             }
         }

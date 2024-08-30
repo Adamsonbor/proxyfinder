@@ -25,7 +25,7 @@ export default function LoginPage() {
 		const access_token = GetCookie("access_token");
 
 		fetch(
-			`${config.server.apiV2Url}/user`,
+			`${config.server.apiUrl}/user`,
 			{
 				method: "GET",
 				headers: {
@@ -35,7 +35,6 @@ export default function LoginPage() {
 			.then(res => res.json())
 			.then((apiData: IApiData) => {
 				if (apiData.data) {
-					console.log(apiData.data)
 					setUser(apiData.data)
 				} else {
 					console.log(apiData.error)

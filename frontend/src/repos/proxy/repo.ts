@@ -1,15 +1,10 @@
 import { Config } from "../../config";
-import { ProxyV2 } from "../../types";
-import { Repo } from "../repo";
+import { Proxy } from "../../types";
+import { Jwt } from "../../utils/jwt/jwt";
+import { CRUDMixin } from "../repo";
 
-export class ProxyV2Repo {
-	_repo: Repo;
-
+export class ProxyRepo extends CRUDMixin<Proxy> {
 	constructor(config: Config) {
-		this._repo = new Repo(`${config.server.apiV2Url}/proxy`, config);
-	}
-
-	async GetAll(): Promise<ProxyV2[]> {
-		return this._repo.Get("?perPage=7000", {}, false).then((res) => res.data as ProxyV2[])
+		super(`${config.server.apiUrl}/proxy`, new Jwt(config));
 	}
 }

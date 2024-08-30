@@ -8,6 +8,7 @@ import (
 	serviceapiv1 "proxyfinder/internal/service/api"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -37,11 +38,8 @@ func New(
 			ClientID:     cfg.GoogleAuth.ClientId,
 			ClientSecret: cfg.GoogleAuth.ClientSecret,
 			RedirectURL:  cfg.GoogleAuth.RedirectUrl,
-			Scopes: []string{
-				people.UserinfoProfileScope,
-				people.UserinfoEmailScope,
-			},
-			Endpoint: google.Endpoint,
+			Scopes:       cfg.GoogleAuth.Scope,
+			Endpoint:     google.Endpoint,
 		},
 	}
 }
@@ -53,13 +51,13 @@ func (self *GoogleAuthService) Login(state string) string {
 func (self *GoogleAuthService) UpdateRefreshToken(
 	ctx context.Context,
 	token string,
-) (serviceapiv1.RefreshResponse, error) {
+) (*serviceapiv1.JWTokens, error) {
 	log := self.log.With(slog.String("op", "GoogleAuthService.UpdateRefreshToken"))
 
 	err := self.jwt.ValidateToken(token)
 	if err != nil {
 		log.Debug("validate token error", slog.Any("error", err))
-		return serviceapiv1.RefreshResponse{}, err
+		return nil, err
 	}
 	log.Debug("token is valid")
 
@@ -67,7 +65,7 @@ func (self *GoogleAuthService) UpdateRefreshToken(
 	user, err := self.userService.GetBy(ctx, "refresh_token", token)
 	if err != nil {
 		log.Debug("get user by refresh token error", slog.Any("error", err))
-		return serviceapiv1.RefreshResponse{}, err
+		return nil, err
 	}
 	log.Debug("user", slog.Any("user", user))
 
@@ -75,22 +73,38 @@ func (self *GoogleAuthService) UpdateRefreshToken(
 	access, refresh, err := self.GenerateTokens(user)
 	if err != nil {
 		log.Debug("generate tokens error", slog.Any("error", err))
-		return serviceapiv1.RefreshResponse{}, err
+		return nil, err
 	}
 	log.Debug("tokens", slog.Any("access", access), slog.Any("refresh", refresh))
 
+	// sign tokens
+	accessString, err := access.SignedString([]byte(self.cfg.JWT.Secret))
+	if err != nil {
+		log.Debug("sign access token error", slog.Any("error", err))
+		return nil, err
+	}
+	refreshString, err := refresh.SignedString([]byte(self.cfg.JWT.Secret))
+	if err != nil {
+		log.Debug("sign refresh token error", slog.Any("error", err))
+		return nil, err
+	}
+	log.Debug("tokens signed")
+
 	// create new session
-	err = self.userService.NewSession(ctx, user.Id, refresh)
+	err = self.userService.NewSession(ctx, user.Id, refreshString, refresh.Claims.(jwt.MapClaims)["exp"].(int64))
 	if err != nil {
 		log.Debug("new session error", slog.Any("error", err))
-		return serviceapiv1.RefreshResponse{}, err
+		return nil, err
 	}
 
+	log.Debug("session created")
+
 	// return new tokens in json
-	res := serviceapiv1.RefreshResponse{
-		AccessToken:  access,
-		RefreshToken: refresh,
-		ExpiresIn:    int64(self.cfg.JWT.AccessTokenTTL.Seconds()),
+	res := &serviceapiv1.JWTokens{
+		AccessToken:  accessString,
+		RefreshToken: refreshString,
+		ExpiresIn:    access.Claims.(jwt.MapClaims)["exp"].(int64),
+		ExpiresInRef: refresh.Claims.(jwt.MapClaims)["exp"].(int64),
 	}
 	return res, nil
 }
@@ -98,13 +112,13 @@ func (self *GoogleAuthService) UpdateRefreshToken(
 func (self *GoogleAuthService) Callback(
 	ctx context.Context,
 	code string,
-) (domain.User, error) {
+) (*serviceapiv1.JWTokens, error) {
 	log := self.log.With(slog.String("op", "GoogleAuthService.Callback"))
 
 	token, err := self.gCfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("exchange error", slog.Any("error", err))
-		return domain.User{}, err
+		return nil, err
 	}
 	log.Debug("token", slog.Any("token", token))
 
@@ -112,40 +126,83 @@ func (self *GoogleAuthService) Callback(
 	userInfo, err := self.UserInfo(token)
 	if err != nil {
 		log.Debug("get user info error", slog.Any("error", err))
-		return domain.User{}, err
+		return nil, err
 	}
 	log.Debug("user info", slog.Any("user", userInfo))
 
 	// Get or create user
 	user, err := self.userService.GetBy(ctx, "email", userInfo.Email)
+	log.Debug("get or create user", slog.Any("user", user), slog.Any("error", err))
 	if err != nil && err.Error() == serviceapiv1.ErrRecordNotFound {
 		id, err := self.userService.Save(ctx, *userInfo)
 		if err != nil {
 			log.Debug("create user error", slog.Any("error", err))
-			return domain.User{}, err
+			return nil, err
 		}
 		userInfo.Id = id
 		user = *userInfo
 	} else if err != nil {
 		log.Debug("get user error", slog.Any("error", err))
-		return domain.User{}, err
+		return nil, err
 	}
 
-	return user, nil
+	// generate new tokens
+	access, refresh, err := self.GenerateTokens(user)
+	if err != nil {
+		log.Debug("generate tokens error", slog.Any("error", err))
+		return nil, err
+	}
+	log.Debug("tokens", slog.Any("access", access), slog.Any("refresh", refresh))
+
+	// sign tokens
+	accessString, refreshString, err := self.SignTokens(access, refresh)
+	if err != nil {
+		log.Debug("sign tokens error", slog.Any("error", err))
+		return nil, err
+	}
+	log.Debug("tokens signed")
+
+	// create new session
+	err = self.userService.NewSession(ctx, user.Id, refreshString, refresh.Claims.(jwt.MapClaims)["exp"].(int64))
+	if err != nil {
+		log.Debug("new session error", slog.Any("error", err))
+		return nil, err
+	}
+
+	return &serviceapiv1.JWTokens{
+		AccessToken:  accessString,
+		RefreshToken: refreshString,
+		ExpiresIn:    access.Claims.(jwt.MapClaims)["exp"].(int64),
+		ExpiresInRef: refresh.Claims.(jwt.MapClaims)["exp"].(int64),
+	}, nil
 }
 
-func (self *GoogleAuthService) GenerateTokens(user domain.User) (string, string, error) {
+func (self *GoogleAuthService) GenerateTokens(user domain.User) (*jwt.Token, *jwt.Token, error) {
 	accessToken, err := self.jwt.GenerateAccessToken(user.Id)
 	if err != nil {
-		return "", "", err
+		return nil, nil, err
 	}
 
 	refreshToken, err := self.jwt.GenerateRefreshToken()
 	if err != nil {
-		return "", "", err
+		return nil, nil, err
 	}
 
 	return accessToken, refreshToken, nil
+}
+
+func (self *GoogleAuthService) SignTokens(access *jwt.Token, refresh *jwt.Token) (string, string, error) {
+	accessString, err := access.SignedString([]byte(self.cfg.JWT.Secret))
+	if err != nil {
+		return "", "", err
+	}
+
+	refreshString, err := refresh.SignedString([]byte(self.cfg.JWT.Secret))
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessString, refreshString, nil
 }
 
 // Get all user info from google api using access token

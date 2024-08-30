@@ -10,15 +10,18 @@ import (
 )
 
 const (
-	getByQuery        = "SELECT * FROM users WHERE %s = ?"
+	getByQuery        = "SELECT * FROM user WHERE %s = ?"
 	getByRefreshToken = `
-		SELECT user.*
+		SELECT 
+			user.id, user.name, user.email, user.phone, user.photo_url,
+			user.date_of_birth, user.created_at, user.updated_at
 		FROM user
-			JOIN session on session.user_id = user.id
-		WHERE session.refresh_token = ?
-		`
-	insertQuery = "INSERT INTO users (name, email) VALUES (?, ?)"
-	insertSessionQuery = "INSERT INTO session (user_id, refresh_token) VALUES (?, ?)"
+			JOIN session on user.id = session.user_id
+		WHERE session.token = ?
+	`
+	getLatestSessionQuery = `SELECT * FROM session WHERE session.user_id = ? ORDER BY created_at DESC LIMIT 1`
+	insertQuery        = "INSERT INTO user (name, email, phone, photo_url, date_of_birth) VALUES (?, ?, ?, ?, ?)"
+	insertSessionQuery = "INSERT INTO session (user_id, token, expires_at) VALUES (?, ?, ?)"
 )
 
 type UserStorage struct {
@@ -44,15 +47,15 @@ func (self *UserStorage) GetByRefreshToken(ctx context.Context, refreshToken str
 }
 
 func (self *UserStorage) Save(ctx context.Context, user domain.User) (int64, error) {
-	res, err := self.db.ExecContext(ctx, insertQuery, user.Name, user.Email)
+	res, err := self.db.ExecContext(ctx, insertQuery, user.Name, user.Email, user.Phone, user.PhotoUrl, user.DateOfBirth)
 	if err != nil {
 		return 0, err
 	}
 
-	return  res.LastInsertId()
+	return res.LastInsertId()
 }
 
-func (self *UserStorage) NewSession(ctx context.Context, userID int64, refreshToken string) error {
-	_, err := self.db.ExecContext(ctx, insertSessionQuery, userID, refreshToken)
+func (self *UserStorage) NewSession(ctx context.Context, userID int64, refreshToken string, expiresAt int64) error {
+	_, err := self.db.ExecContext(ctx, insertSessionQuery, userID, refreshToken, expiresAt)
 	return err
 }
