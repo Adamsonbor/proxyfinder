@@ -20,12 +20,10 @@ TODO:
 IN PROGRESS:
 	frontend:
 	server:
-		- add country endpoint
-		- add country storage
-		- add country service
 
 DONE:
 	frontend:
+		- add popup window for login (soon)
 		- fix favorits button
 		- setup favoritsRepo for update and delete favorits
 		- fix display user data in header
@@ -50,6 +48,9 @@ DONE:
 		- add Mail.ru icon to header for auth (soon)
 
 	server:
+		- add country endpoint
+		- add country storage
+		- add country service
 		- fix googleauth service (fix jwt cookie expiration)
 		- fix favorits storage (user_id and proxy_id should be proxy_id and user_id)
 		- fix UserInfo endpoint

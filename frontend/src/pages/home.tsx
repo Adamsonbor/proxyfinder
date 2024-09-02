@@ -59,6 +59,7 @@ export default function HomePage() {
 								user={user}
 								sorts={sorts}
 								setSorts={setSorts}
+								setNotification={setOpenNotification}
 								filter={filter}
 								setFilter={setFilter} />
 						</div>

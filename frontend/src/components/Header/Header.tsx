@@ -1,4 +1,4 @@
-import { Container, Button, useTheme, Box, Menu, MenuItem } from "@mui/material";
+import { Container, Button, useTheme, Box, Menu, MenuItem, Snackbar } from "@mui/material";
 import { FcGoogle } from "react-icons/fc";
 import { SiMaildotru } from "react-icons/si";
 import { FaGithub } from "react-icons/fa";
@@ -25,6 +25,7 @@ export default function Header({
 	const userRepo = new UserRepo(config);
 
 	const [openUserMenu, setOpenUserMenu] = useState(false);
+	const [openNotification, setOpenNotification] = useState(false);
 	const menuButton = useRef(null);
 
 	useEffect(() => {
@@ -37,10 +38,10 @@ export default function Header({
 		}
 	}, [])
 
-	function login() {
-		// redirect
-		window.location.href = `${config.server.url}/auth/google/login`;
-	}
+	// function login() {
+	// 	// redirect
+	// 	window.location.href = `${config.server.url}/auth/google/login`;
+	// }
 
 	return (
 		<div
@@ -92,7 +93,8 @@ export default function Header({
 								minWidth: "40px",
 							}}
 							onClick={() => {
-								login()
+								setOpenNotification(true)
+								// login()
 							}}>
 							<FcGoogle width={18} size={18} />
 						</Button>
@@ -148,6 +150,16 @@ export default function Header({
 					}
 				</Box>
 			</Container>
+			<Snackbar
+				anchorOrigin={{ vertical: "top", horizontal: "center" }}
+				sx={{
+					minWidth: "300px",
+					minHeight: "50px",
+				}}
+				open={openNotification}
+				onClose={() => setOpenNotification(false)}
+				autoHideDuration={3000}
+				message="Soon" />
 		</div>
 	)
 }

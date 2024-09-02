@@ -17,6 +17,7 @@ interface Props {
 	setSorts?: (sorts: object) => void;
 	filter?: object;
 	setFilter?: (filter: object) => void;
+	setNotification?: (open: boolean) => void;
 	user?: User;
 	sx?: object;
 }
@@ -27,6 +28,7 @@ function Table({
 	setSorts = () => { },
 	filter = {},
 	setFilter = () => { },
+	setNotification = () => { },
 	user = undefined,
 	sx = {},
 }: Props) {
@@ -61,8 +63,7 @@ function Table({
 		tableBody.current?.addEventListener("scroll", handleScroll);
 
 		return () => {
-			tableBody.current?.removeEventListener("scroll", handleScroll);
-		}
+			tableBody.current?.removeEventListener("scroll", handleScroll); }
 	}, [onScroll]);
 
 	const columns: Column<Value>[] = [
@@ -292,6 +293,7 @@ function Table({
 
 	async function favoriteHandler(proxyId: number, isFavorite: boolean) {
 		if (!user) {
+			setNotification(true);
 			return
 		}
 
