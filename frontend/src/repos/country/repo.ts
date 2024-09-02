@@ -5,6 +5,6 @@ import { CRUDMixin } from "../repo";
 
 export class CountryRepo extends CRUDMixin<Country> {
 	constructor(config: Config) {
-		super(`${config.server.apiUrl}/countries`, new Jwt(config));
+		super(`${config.server.apiUrl}/country`, new Jwt(config));
 	}
 }

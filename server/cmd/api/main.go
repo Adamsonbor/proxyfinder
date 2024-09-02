@@ -6,13 +6,16 @@ import (
 	"proxyfinder/internal/config"
 	googleservice "proxyfinder/internal/service/api/v1/auth/google"
 	jwtservice "proxyfinder/internal/service/api/v1/auth/jwt"
+	countryservice "proxyfinder/internal/service/api/v1/country"
 	favoritsservice "proxyfinder/internal/service/api/v1/favorits"
 	proxyservice "proxyfinder/internal/service/api/v1/proxy"
 	userservice "proxyfinder/internal/service/api/v1/user"
+	countrystorage "proxyfinder/internal/storage/sqlx/country"
 	favoritsstorage "proxyfinder/internal/storage/sqlx/favorits"
 	proxystorage "proxyfinder/internal/storage/sqlx/proxy"
 	userstorage "proxyfinder/internal/storage/sqlx/user"
 	googleapi "proxyfinder/internal/transport/api/chi/v1/auth/google"
+	countryapi "proxyfinder/internal/transport/api/chi/v1/country"
 	favoritsapi "proxyfinder/internal/transport/api/chi/v1/favorits"
 	proxyapi "proxyfinder/internal/transport/api/chi/v1/proxy"
 	userapi "proxyfinder/internal/transport/api/chi/v1/user"
@@ -51,6 +54,7 @@ func main() {
 	proxyStorage := proxystorage.New(db)
 	favoritsStorage := favoritsstorage.New(db)
 	userStorage := userstorage.New(db)
+	countryStorage := countrystorage.New(db)
 
 	// INIT service
 	proxyService := proxyservice.New(log, proxyStorage)
@@ -58,6 +62,7 @@ func main() {
 	userService := userservice.New(log, userStorage)
 	jwtService := jwtservice.New(log, cfg)
 	googleAuthService := googleservice.New(log, userService, jwtService, cfg)
+	countryService := countryservice.New(log, countryStorage)
 
 	// INIT router
 	mux := chi.NewRouter()
@@ -65,6 +70,7 @@ func main() {
 	favoritsController := favoritsapi.New(log, favoritsService, jwtService)
 	googleAuthController := googleapi.New(log, googleAuthService, *cfg)
 	userController := userapi.New(log, userService, jwtService, *cfg)
+	countryController := countryapi.New(log, countryService)
 
 	// register routes
 	mux.Use(middleware.Recoverer)
@@ -83,6 +89,7 @@ func main() {
 		r.Mount("/proxy", proxyController.Router)
 		r.Mount("/favorits", favoritsController.Router)
 		r.Mount("/user", userController.Router)
+		r.Mount("/country", countryController.Router)
 	})
 	mux.Mount("/auth/google", googleAuthController.Router)
 	mux.Get("/swagger/*", httpSwagger.Handler(

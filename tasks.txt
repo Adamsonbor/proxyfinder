@@ -1,8 +1,15 @@
 TODO:
+	frontend:
+		- fix rerendering
+		- fix login (add login button on header that should open a modal widow
+			which contains oauth2.0 buttons)
 	server:
 		- add email notifier service that will send email with available favorites
 		- add rabbitmq message receiver service that will call email notifier service subscribe method
 		- add rabbitmq api to subscribe to email
+		- fix user service:
+			fix get user by refresh token (user should be return if refresh token is latest and not expired)
+		- add Create body validation to favorits service
 
 	- add redis cache
 	- add rabbitmq container for sending emails
@@ -12,17 +19,15 @@ TODO:
 
 IN PROGRESS:
 	frontend:
-		- fix favorits button
-		- fix login (add login button on header that should open a modal widow
-			which contains oauth2.0 buttons)
-		- setup favoritsRepo for update and delete favorits
 	server:
-		- fix user service:
-			fix get user by refresh token (user should be return if refresh token is latest and not expired)
-		- add Create body validation to favorits service
+		- add country endpoint
+		- add country storage
+		- add country service
 
 DONE:
 	frontend:
+		- fix favorits button
+		- setup favoritsRepo for update and delete favorits
 		- fix display user data in header
 		- fix get user by refresh token
 		- fix autocompletesearch field on left panel

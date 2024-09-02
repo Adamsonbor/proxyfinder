@@ -7,13 +7,15 @@ import RadioButtonGroup from "../RadioButtonGroup/RadioButtonGroup";
 import { darkTheme, lightTheme } from "../../theme";
 import ThemeSwitch from "../ThemeSwitch/ThemeSwitch";
 import { Theme } from "@mui/material/styles";
+import { CountryRepo } from "../../repos/country/repo";
+import { useConfig } from "../../config";
+import { Country } from "../../types";
 
 interface Props {
 	className?: string
 	sx?: object
 	theme?: Theme
 	setTheme?: (theme: Theme) => void
-	countries?: string[]
 	filter?: object
 	setFilter?: (filter: object) => void
 }
@@ -40,21 +42,32 @@ const availableStatuses = [
 export default function LeftPanel({
 	className = "",
 	sx = {},
-	countries = [],
 	filter = {},
 	setFilter = () => { },
 	theme = lightTheme,
 	setTheme = () => { },
 }: Props) {
+	const config = useConfig();
+	const countryRepo = new CountryRepo(config);
 
+	const [countries, setCountries] = useState<Country[]>([]);
 	const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
 	const [protocolStates, setProtocolStates] = useState<ProtocolState[]>(protocols);
 	const [selectedStatus, setSelectedStatus] = useState<string>(availableStatuses[0]);
-	countries = uniqueArray(countries)
 
 	const toggleTheme = () => {
 		setTheme(theme === lightTheme ? darkTheme : lightTheme);
 	};
+
+
+	useEffect(() => {
+		countryRepo.GetAll({
+			"page": 1,
+			"perPage": 300,
+		}).then((res) => {
+			setCountries(res);
+		})
+	}, []);
 
 	useEffect(() => {
 		if (selectedCountries.length === 0) {
@@ -62,10 +75,7 @@ export default function LeftPanel({
 		} else {
 			filter["country_name"] = selectedCountries;
 		}
-		setFilter({ ...filter });
-	}, [selectedCountries]);
 
-	useEffect(() => {
 		if (protocolStates.filter((protocol: ProtocolState) => protocol.checked).length === 0) {
 			delete filter["protocol"];
 		} else {
@@ -73,17 +83,18 @@ export default function LeftPanel({
 				.filter((protocol: ProtocolState) => protocol.checked)
 				.map((protocol: ProtocolState) => protocol.name);
 		}
-		setFilter({ ...filter });
-	}, [protocolStates]);
 
-	useEffect(() => {
 		if (selectedStatus === "All") {
 			delete filter["status_name"];
 		} else {
 			filter["status_name"] = selectedStatus;
 		}
+
+		filter["page"] = 1;
+
 		setFilter({ ...filter });
-	}, [selectedStatus]);
+	}, [selectedCountries, protocolStates, selectedStatus]);
+
 
 	return (
 		<div
@@ -106,7 +117,7 @@ export default function LeftPanel({
 							height: '100%',
 						}}>
 						<SearchMultipleAutocomplete
-							values={countries ?? []}
+							values={countries?.map((country) => country.name) ?? []}
 							label="Country or Region"
 							selectedValues={selectedCountries}
 							setSelectedValues={setSelectedCountries}
@@ -193,9 +204,5 @@ export default function LeftPanel({
 		});
 
 		setProtocolStates(newProtocolStates);
-	}
-
-	function uniqueArray<T>(arr: T[]): T[] {
-		return [...new Set(arr)];
 	}
 }

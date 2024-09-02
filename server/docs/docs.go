@@ -9,17 +9,61 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "termsOfService": "http://swagger.io/terms/",
-        "contact": {
-            "name": "Adamson Bor",
-            "url": "http://github.com/Adamsonbor",
-            "email": "adamsonbor@gmail.com"
-        },
+        "contact": {},
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/country": {
+            "get": {
+                "description": "Get all countries with filters and sorting",
+                "tags": [
+                    "country"
+                ],
+                "summary": "Get all countries",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Results per page",
+                        "name": "perPage",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Country name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Country code",
+                        "name": "code",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/chiapi.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/chiapi.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/favorits": {
             "get": {
                 "description": "Get all favorits with filters",
@@ -28,6 +72,13 @@ const docTemplate = `{
                 ],
                 "summary": "Get all favorits",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authorization",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Page number",
@@ -333,10 +384,10 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "proxy_id": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "user_id": {
-                    "type": "string"
+                    "type": "integer"
                 }
             }
         }
@@ -345,12 +396,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
-	Host:             "localhost:8080",
+	Version:          "",
+	Host:             "",
 	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "Proxpro API",
-	Description:      "Proxpro API",
+	Title:            "",
+	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

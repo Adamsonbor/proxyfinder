@@ -51,16 +51,3 @@ services:
     restart: always
     depends_on:
       - api
-  
-  admin:
-    image: node:20-alpine
-    container_name: proxyfinder-admin-dev
-    ports:
-      - 3000:3000
-    working_dir: /app
-    volumes:
-      - ./admin:/app
-    command: sh -c "yarn && yarn dev"
-    restart: always
-    depends_on:
-      - api

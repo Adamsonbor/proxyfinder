@@ -1,0 +1,5 @@
+RABBITMQ_DEFAULT_USER="supersecretadminuser"
+RABBITMQ_DEFAULT_PASS="d1mGnBzA0171"
+
+# url for your server (ip or domain)
+VITE_API_URL=http://localhost:8080

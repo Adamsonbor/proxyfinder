@@ -40,6 +40,12 @@ func (self *FavoritsService) Save(ctx context.Context, options options.Options) 
 		log.Warn("failed to validate options", slog.String("err", err.Error()))
 	}
 
+	err = self.ValidateOrderOptions(options)
+	if err != nil {
+		log.Warn("failed to validate order options", slog.String("err", err.Error()))
+		return 0, err
+	}
+
 	return self.storage.Save(ctx, options)
 }
 
@@ -52,6 +58,25 @@ func (self *FavoritsService) Delete(ctx context.Context, options options.Options
 	}
 
 	return self.storage.Delete(ctx, options)
+}
+
+func (self *FavoritsService) ValidateOrderOptions(options options.Options) error {
+	order := map[string]int{
+		"user_id": 0,
+		"proxy_id": 1,
+	}
+
+	fields := options.Fields()
+	for indx := 0; indx < len(fields)-1; indx++ {
+		value := fields[indx].Name
+		nextValue := fields[indx+1].Name
+
+		if order[value] > order[nextValue] {
+			return errors.New(apiv1.ErrInvalidFieldsOrder)
+		}
+	}
+
+	return nil
 }
 
 func (self *FavoritsService) ValidateOptions(options options.Options) error {

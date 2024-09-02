@@ -1,3 +1,5 @@
+import { Proxy } from "../../types";
+
 export interface CellParams<T> {
 	row: T;
 }
@@ -17,3 +19,6 @@ export interface Column<T> {
 	sorts?: object;
 }
 
+export interface Value extends Proxy {
+	isFavorite: boolean;
+}

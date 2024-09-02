@@ -1,18 +1,58 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "Proxpro API",
-        "title": "Proxpro API",
-        "termsOfService": "http://swagger.io/terms/",
-        "contact": {
-            "name": "Adamson Bor",
-            "url": "http://github.com/Adamsonbor",
-            "email": "adamsonbor@gmail.com"
-        },
-        "version": "1.0"
+        "contact": {}
     },
-    "host": "localhost:8080",
     "paths": {
+        "/api/v1/country": {
+            "get": {
+                "description": "Get all countries with filters and sorting",
+                "tags": [
+                    "country"
+                ],
+                "summary": "Get all countries",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Results per page",
+                        "name": "perPage",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Country name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Country code",
+                        "name": "code",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/chiapi.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/chiapi.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/favorits": {
             "get": {
                 "description": "Get all favorits with filters",
@@ -21,6 +61,13 @@
                 ],
                 "summary": "Get all favorits",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authorization",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Page number",
@@ -326,10 +373,10 @@
             "type": "object",
             "properties": {
                 "proxy_id": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "user_id": {
-                    "type": "string"
+                    "type": "integer"
                 }
             }
         }

@@ -6,22 +6,36 @@ import { User } from "../../types";
 import UserBlock from "./UserBlock";
 import { useConfig } from "../../config";
 import { SetCookie } from "../../utils/utils";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { UserRepo } from "../../repos/user/repo";
 
 interface Props {
 	// User or undefined
 	user?: User
+	setUser?: (user: User | undefined) => void
 	setModalOpen?: any
 }
 
 export default function Header({
-	user,
+	user = undefined,
+	setUser = () => { },
 }: Props) {
 	const config = useConfig();
 	const theme = useTheme();
+	const userRepo = new UserRepo(config);
 
 	const [openUserMenu, setOpenUserMenu] = useState(false);
 	const menuButton = useRef(null);
+
+	useEffect(() => {
+		if (user === undefined) {
+			userRepo.GetBy({}, {}, true).then((user) => {
+				if (user !== undefined) {
+					setUser(user);
+				}
+			});
+		}
+	}, [])
 
 	function login() {
 		// redirect

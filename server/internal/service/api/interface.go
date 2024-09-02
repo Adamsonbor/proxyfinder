@@ -11,10 +11,11 @@ import (
 )
 
 const (
-	ErrInvalidField   = "Invalid field name"
-	ErrRecordNotFound = "Record not found"
-	ErrAlreadyExists  = "Already exists"
-	ErrIdNotFound     = "Id not found"
+	ErrInvalidFieldsOrder = "Invalid fields order"
+	ErrInvalidField       = "Invalid field name"
+	ErrRecordNotFound     = "Record not found"
+	ErrAlreadyExists      = "Already exists"
+	ErrIdNotFound         = "Id not found"
 )
 
 type RefreshResponse struct {
@@ -54,6 +55,7 @@ type JWTService interface {
 	ValidateToken(tokenString string) error
 }
 
+// TODO: fix jwt dependency
 type GoogleAuthService interface {
 	Login(state string) string
 	UpdateRefreshToken(ctx context.Context, refreshToken string) (*JWTokens, error)
@@ -68,6 +70,11 @@ type UserService interface {
 	GetBy(ctx context.Context, fieldName string, value interface{}) (domain.User, error)
 	Save(ctx context.Context, user domain.User) (int64, error)
 	NewSession(ctx context.Context, userId int64, token string, expiresIn int64) error
+}
+
+// TODO: fix filter dependency
+type CountryService interface {
+	GetAll(ctx context.Context, filter options.Options, sort options.Options) ([]domain.Country, error)
 }
 
 // TODO: fix filter dependency
@@ -89,4 +96,9 @@ type UserStorage interface {
 	GetByRefreshToken(ctx context.Context, token string) (domain.User, error)
 	Save(ctx context.Context, user domain.User) (int64, error)
 	NewSession(ctx context.Context, userId int64, refresh string, expiresAt int64) error
+}
+
+// TODO: fix filter dependency
+type CountryStorage interface {
+	GetAll(ctx context.Context, filter options.Options, sort options.Options) ([]domain.Country, error)
 }
